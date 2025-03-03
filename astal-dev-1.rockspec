@@ -2,7 +2,7 @@ package = "astal"
 version = "dev-1"
 
 source = {
-    url = "git+https://github.com//astal",
+    url = "git+https://github.com/tokyob0t/astal-lua",
 }
 
 description = {
