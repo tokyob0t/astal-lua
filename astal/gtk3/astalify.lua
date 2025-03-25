@@ -136,6 +136,19 @@ local function merge_bindings(array)
     return Variable.derive(bindings, get_values)()
 end
 
+---@alias Connectable GObject.Object | Variable | Binding | any
+
+---@generic T
+---@class astalified<T>: {
+---class_name: string,
+---css: string,
+---toggle_class_name: fun(self: T, class_name: string, on: boolean),
+---hook: fun(self: T, gobject: Connectable, signalOrCallback: string | fun(gobject: Connectable, prop: any), callback?: fun(gobject: Connectable, prop: any))
+---}
+
+---@generic W: Gtk.Widget
+---@param ctor W
+---@return fun(args?: W | astalified<W> |  { setup: fun(self: W | astalified<W>): nil } | table<string, any>): W | astalified<W>
 return function(ctor)
     function ctor:hook(object, signalOrCallback, callback)
         if GObject.Object:is_type_of(object) and type(signalOrCallback) == "string" then

@@ -28,6 +28,6 @@ return {
     monitor_file = File.monitor_file,
 
     ---@generic T
-    ---@type fun(libname: `T`, version: string): T
+    ---@type fun(libname: `T`, version?: string): T
     require = lgi.require,
 }
