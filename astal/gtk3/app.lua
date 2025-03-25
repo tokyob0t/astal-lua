@@ -1,7 +1,11 @@
 local lgi = require("lgi")
+---@type Astal
 local Astal = lgi.require("Astal", "3.0")
+---@type AstalIO
 local AstalIO = lgi.require("AstalIO", "0.1")
 
+---@class AstalLua: Astal.Application
+---@overload fun(): AstalLua
 local AstalLua = Astal.Application:derive("AstalLua")
 local request_handler
 
@@ -23,16 +27,16 @@ function AstalLua:quit(code)
 end
 
 ---@class StartConfig
----@field icons string?
----@field instance_name string?
----@field gtk_theme string?
----@field icon_theme string?
----@field cursor_theme string?
----@field css string?
----@field hold boolean?
----@field request_handler fun(msg: string, response: fun(res: any)): nil
----@field main fun(...): nil
----@field client fun(message: fun(msg: string): string, ...): nil
+---@field icons? string
+---@field instance_name? string
+---@field gtk_theme? string
+---@field icon_theme? string
+---@field cursor_theme? string
+---@field css? string
+---@field hold? boolean
+---@field request_handler? fun(msg: string, response: fun(res: any)): nil
+---@field main? fun(...): nil
+---@field client? fun(message: fun(msg: string): string, ...): nil
 
 ---@param config? StartConfig
 function AstalLua:start(config)

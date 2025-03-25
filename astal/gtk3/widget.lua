@@ -1,5 +1,7 @@
 local lgi = require("lgi")
+---@type Astal
 local Astal = lgi.require("Astal", "3.0")
+---@type Gtk
 local Gtk = lgi.require("Gtk", "3.0")
 local astalify = require("astal.gtk3.astalify")
 
@@ -66,9 +68,9 @@ Gtk.Widget._attribute.click_through = {
 }
 
 Gtk.Widget._attribute.action_group = {
-  set = function (self, v)
-    self:insert_action_group(v[1], v[2])
-  end
+    set = function(self, v)
+        self:insert_action_group(v[1], v[2])
+    end,
 }
 
 local no_implicit_destroy = {}
