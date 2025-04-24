@@ -80,7 +80,7 @@ function AstalLua:start(config)
 
     if err ~= nil then
         return config.client(function(msg)
-            return AstalIO.send_message(self.instance_name, msg)
+            return AstalIO.send_request(self.instance_name, msg)
         end, table.unpack(arg))
     end
 
