@@ -20,6 +20,6 @@ function M.map(array, func)
 	return new_arr
 end
 
-M.date = Variable(""):poll(1000, "date")
+M.date = Variable.new(""):poll(1000, "date")
 
 return M
