@@ -1,6 +1,6 @@
 local astal = require("astal")
 local Widget = require("astal.gtk3.widget")
-local Variable = astal.Variable
+local Variable = require("astal.variable")
 local GLib = astal.require("GLib")
 local bind = astal.bind
 local Mpris = astal.require("AstalMpris")
@@ -161,7 +161,7 @@ local function Workspaces()
 end
 
 local function Time(format)
-	local time = Variable(""):poll(
+	local time = Variable.new(""):poll(
 		1000,
 		function() return GLib.DateTime.new_now_local():format(format) end
 	)
@@ -169,7 +169,7 @@ local function Time(format)
 	return Widget.Label({
 		class_name = "Time",
 		on_destroy = function() time:drop() end,
-		label = time(),
+		label = bind(time),
 	})
 end
 

@@ -5,6 +5,7 @@ local App = require("astal.gtk3.app")
 local Astal = require("astal.gtk3").Astal
 local Gdk = require("astal.gtk3").Gdk
 local Variable = astal.Variable
+local bind = astal.bind
 local Widget = require("astal.gtk3.widget")
 
 local slice = require("lib").slice
@@ -49,8 +50,8 @@ end
 return function()
 	local apps = Apps.Apps()
 
-	local text = Variable("")
-	local list = text(
+	local text = Variable.new("")
+	local list = bind(text):as(
 		function(t) return slice(apps:fuzzy_query(t), 1, MAX_ITEMS) end
 	)
 
@@ -69,6 +70,7 @@ return function()
 		keymode = "ON_DEMAND",
 		application = App,
 		on_show = function() text:set("") end,
+		on_hide = function() App:quit(0) end,
 		on_key_press_event = function(self, event)
 			if event.keyval == Gdk.KEY_Escape then self:hide() end
 		end,
@@ -88,7 +90,7 @@ return function()
 					class_name = "Applauncher",
 					Widget.Entry({
 						placeholder_text = "Search",
-						text = text(),
+						text = bind(text),
 						on_changed = function(self) text:set(self.text) end,
 						on_activate = on_enter,
 					}),

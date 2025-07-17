@@ -2,6 +2,7 @@ local astal = require("astal")
 local Variable = require("astal").Variable
 local Gtk = require("astal.gtk3").Gtk
 local GLib = astal.require("GLib")
+local bind = astal.bind
 
 local M = {}
 
@@ -29,7 +30,7 @@ function M.file_exists(path) return GLib.file_test(path, "EXISTS") end
 
 function M.varmap(initial)
 	local map = initial
-	local var = Variable()
+	local var = Variable.new()
 
 	local function notify()
 		local arr = {}
@@ -60,7 +61,7 @@ function M.varmap(initial)
 		get = function() return var:get() end,
 		subscribe = function(callback) return var:subscribe(callback) end,
 	}, {
-		__call = function() return var() end,
+		__call = function() return bind(var) end,
 	})
 end
 
