@@ -1,0 +1,17 @@
+{
+  "diagnostics": {
+    "libraryFiles": "Opened",
+  },
+  "workspace": {
+    "library": [
+      "/run/current-system/sw/share/awesome/lib/",
+      "/usr/share/lua/5.1/",
+      "~/.cache/luagir/",
+    ],
+    "maxPreload": 2000,
+    "preloadFileSize": 1000
+  },
+  "runtime": {
+    "version": "LuaJIT"
+  }
+}
