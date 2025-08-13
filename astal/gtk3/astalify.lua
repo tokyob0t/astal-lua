@@ -1,16 +1,16 @@
-local lgi = require("lgi")
-local Astal = lgi.require("Astal", "3.0")
-local Gtk = lgi.require("Gtk", "3.0")
-local GObject = lgi.require("GObject", "2.0")
-local Binding = require("astal.binding")
-local Variable = require("astal.variable")
-local exec_async = require("astal.process").exec_async
+local lgi = require('lgi')
+local Astal = lgi.require('Astal', '3.0')
+local Gtk = lgi.require('Gtk', '3.0')
+local GObject = lgi.require('GObject', '2.0')
+local Binding = require('astal.binding')
+local Variable = require('astal.variable')
+local exec_async = require('astal.process').exec_async
 
 local function filter(tbl, fn)
     local copy = {}
     for key, value in pairs(tbl) do
         if fn(value, key) then
-            if type(key) == "number" then
+            if type(key) == 'number' then
                 table.insert(copy, value)
             else
                 copy[key] = value
@@ -31,7 +31,7 @@ end
 local function flatten(tbl)
     local copy = {}
     for _, value in pairs(tbl) do
-        if type(value) == "table" and getmetatable(value) == nil then
+        if type(value) == 'table' and getmetatable(value) == nil then
             for _, inner in pairs(flatten(value)) do
                 table.insert(copy, inner)
             end
@@ -88,6 +88,7 @@ local function set_children(parent, children)
     -- TODO: add more container types
     if Astal.Box:is_type_of(parent) then
         parent:set_children(children)
+    -- elseif Astal.EventBox:is_type_of(parent) then
     elseif Astal.Stack:is_type_of(parent) then
         parent:set_children(children)
     elseif Astal.CenterBox:is_type_of(parent) then
@@ -136,12 +137,12 @@ local function merge_bindings(array)
     return Variable.derive(bindings, get_values)()
 end
 
----@alias Connectable GObject.Object | Variable | Binding | any
+---@alias Connectable GObject.Object | AstalLuaVariable | AstalLuaBinding | any
 
 ---@generic T
 ---@class astalified<T>: {
----class_name: string,
 ---css: string,
+---class_name: string,
 ---toggle_class_name: fun(self: T, class_name: string, on: boolean),
 ---hook: fun(self: T, gobject: Connectable, signalOrCallback: string | fun(gobject: Connectable, prop: any), callback?: fun(gobject: Connectable, prop: any))
 ---}
@@ -151,28 +152,28 @@ end
 ---@return fun(args?: W | astalified<W> |  { setup: fun(self: W | astalified<W>): nil } | table<string, any>): W | astalified<W>
 return function(ctor)
     function ctor:hook(object, signalOrCallback, callback)
-        if GObject.Object:is_type_of(object) and type(signalOrCallback) == "string" then
+        if GObject.Object:is_type_of(object) and type(signalOrCallback) == 'string' then
             local id
-            if string.sub(signalOrCallback, 1, 8) == "notify::" then
-                local prop = string.gsub(signalOrCallback, "notify::", "")
+            if string.sub(signalOrCallback, 1, 8) == 'notify::' then
+                local prop = string.gsub(signalOrCallback, 'notify::', '')
                 id = object.on_notify:connect(function()
                     callback(self, object[prop])
                 end, prop, false)
             else
-                id = object["on_" .. signalOrCallback]:connect(function(_, ...)
+                id = object['on_' .. signalOrCallback]:connect(function(_, ...)
                     callback(self, ...)
                 end)
             end
             self.on_destroy = function()
                 GObject.signal_handler_disconnect(object, id)
             end
-        elseif type(object.subscribe) == "function" then
+        elseif type(object.subscribe) == 'function' then
             local unsub = object.subscribe(function(...)
                 signalOrCallback(self, ...)
             end)
             self.on_destroy = unsub
         else
-            error("can not hook: not gobject+signal or subscribable")
+            error('can not hook: not gobject+signal or subscribable')
         end
     end
 
@@ -188,7 +189,7 @@ return function(ctor)
 
         -- collect children
         local children = merge_bindings(flatten(filter(tbl, function(_, key)
-            return type(key) == "number"
+            return type(key) == 'number'
         end)))
 
         -- default visible to true
@@ -198,12 +199,12 @@ return function(ctor)
 
         -- collect props
         local props = filter(tbl, function(_, key)
-            return type(key) == "string" and key ~= "setup"
+            return type(key) == 'string' and key ~= 'setup'
         end)
 
         -- collect signal handlers
         for prop, value in pairs(props) do
-            if string.sub(prop, 0, 2) == "on" and type(value) ~= "function" then
+            if string.sub(prop, 0, 2) == 'on' and type(value) ~= 'function' then
                 props[prop] = function()
                     exec_async(value, print)
                 end
@@ -242,7 +243,7 @@ return function(ctor)
             widget[prop] = value
         end
 
-        if type(setup) == "function" then
+        if type(setup) == 'function' then
             setup(widget)
         end
 
