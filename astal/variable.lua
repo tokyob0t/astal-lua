@@ -37,10 +37,12 @@ function Variable:_tostring()
     return string.format('%s<%s>', self._name, self:get())
 end
 
+---@return any
 function Variable:get()
     return self.value
 end
 
+---@param value any
 function Variable:set(value)
     self.value = value
 end
@@ -78,9 +80,10 @@ function Variable:stop_poll()
     self.priv.poll = nil
 end
 
----@param interval number
----@param exec string | string[] | function
+---@param interval integer
+---@param exec string | string[]
 ---@param transform? fun(next: any, prev: any): any
+---@overload fun(self: AstalLuaVariable, interval: integer, exec: fun(prev: any): any ): AstalLuaVariable
 function Variable:poll(interval, exec, transform)
     transform = transform or function(next)
         return next
@@ -137,52 +140,6 @@ function Variable:watch(exec, transform)
     self:start_watch()
     return self
 end
-
--- ---@param object table
--- ---@param sigOrFn string
--- ---@param callback fun(...): any
--- ---@return Variable
--- ---@overload fun(self: Variable, object: { [1]: table, [2]: string }[], callback: fun(...): any): Variable
--- function Variable:observe(object, sigOrFn, callback)
---     local f
---     if type(sigOrFn) == 'function' then
---         f = sigOrFn
---     else
---         f = callback or function()
---             return self:get()
---         end
---     end
-
---     local set = function(...)
---         self:set(f(...))
---     end
-
---     local arr = {}
-
---     if type(sigOrFn) == 'string' then
---         table.insert(arr, { object, sigOrFn })
---     end
-
---     for _, tbl in ipairs(arr) do
---         local id
---         local obj, signal = tbl[1], tbl[2]
-
---         if string.sub(signal, 1, 8) == 'notify::' then
---             local prop = string.gsub(signal, 'notify::', '')
---             id = obj.on_notify:connect(function()
---                 set(obj, obj[prop])
---             end, prop, false)
---         else
---             id = obj['on_' .. signal]:connect(set)
---         end
-
---         self:on_dropped(function()
---             GObject.signal_handler_disconnect(obj, id)
---         end)
---     end
-
---     return self
--- end
 
 ---@param gobject GObject.Object
 ---@param signal string
@@ -253,18 +210,62 @@ end
 function Variable:on_error(fn)
     assert(fn, 'Callback not provided on on_dropped()')
     table.insert(self.priv.errtbl, fn)
-    self.priv.err_handler = nil
+    self.priv.err_handler = true
 
     return self
+end
+
+---@param deps ( AstalLuaVariable | AstalLuaBinding )[]
+---@param transform? fun(...): any
+---@return AstalLuaVariable
+function Variable.derive(deps, transform)
+    local bind = require('astal.binding')
+
+    transform = transform or function(...)
+        return { ... }
+    end
+
+    for i, var in ipairs(deps) do
+        if Variable:is_type_of(var) then
+            deps[i] = bind(var)
+        end
+    end
+
+    local function update()
+        local params = {}
+        for i, binding in ipairs(deps) do
+            params[i] = binding:get()
+        end
+        return transform(table.unpack(params, 1, #deps))
+    end
+
+    local var = Variable.new(update())
+
+    local unsubs = {}
+
+    for i, b in ipairs(deps) do
+        unsubs[i] = b:subscribe(function()
+            var:set(update())
+        end)
+    end
+
+    var:on_dropped(function()
+        for _, unsub in ipairs(unsubs) do
+            unsub()
+        end
+    end)
+
+    return var
 end
 
 ---@private
 function Variable:_init()
     self.priv.droptbl = {}
     self.priv.errtbl = {}
+    self.priv.err_handler = false
 
     self:on_error(function(_, err)
-        if self.priv.err_handler then
+        if not self.priv.err_handler then
             print(err)
         end
     end)

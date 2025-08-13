@@ -13,12 +13,6 @@ Binding.__index = Binding ---@diagnostic disable-line
 ---@param emitter table | Variable | userdata
 ---@param property? string
 function Binding.new(emitter, property)
-    local Variable = require('astal.variable')
-
-    if Variable:is_type_of(emitter) then
-        property = 'value'
-    end
-
     return setmetatable({
         emitter = emitter,
         property = property,
@@ -44,7 +38,7 @@ function Binding:get()
     elseif type(self.emitter.get) == 'function' then
         return self.transform_fn(self.emitter:get())
     else
-        error('can not get: Not a GObject or a Variable ' .. self)
+        error('can not get: Not a GObject or a Variable ' .. tostring(self))
     end
 end
 
