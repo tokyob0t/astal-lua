@@ -174,12 +174,10 @@ local function Time(format)
 end
 
 return function(gdkmonitor)
-	local Anchor = astal.require("Astal").WindowAnchor
-
 	return Widget.Window({
 		class_name = "Bar",
 		gdkmonitor = gdkmonitor,
-		anchor = Anchor.TOP + Anchor.LEFT + Anchor.RIGHT,
+		anchor = { "TOP", "LEFT", "RIGHT" },
 		exclusivity = "EXCLUSIVE",
 		Widget.CenterBox({
 			Widget.Box({

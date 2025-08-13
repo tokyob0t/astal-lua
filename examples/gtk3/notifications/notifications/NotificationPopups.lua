@@ -42,13 +42,12 @@ local function NotificationMap()
 end
 
 return function(gdkmonitor)
-	local Anchor = astal.require("Astal").WindowAnchor
 	local notifs = NotificationMap()
 
 	return Widget.Window({
 		class_name = "NotificationPopups",
 		gdkmonitor = gdkmonitor,
-		anchor = Anchor.TOP + Anchor.RIGHT,
+		anchor = { "TOP", "RIGHT" },
 		Widget.Box({
 			vertical = true,
 			notifs(),
