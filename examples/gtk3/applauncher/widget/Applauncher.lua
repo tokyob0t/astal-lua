@@ -65,7 +65,7 @@ return function()
 
 	return Widget.Window({
 		name = "launcher",
-		anchor = Astal.WindowAnchor.TOP + Astal.WindowAnchor.BOTTOM,
+		anchor = { "TOP", "BOTTOM" },
 		exclusivity = "IGNORE",
 		keymode = "ON_DEMAND",
 		application = App,
