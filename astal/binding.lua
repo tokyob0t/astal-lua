@@ -2,15 +2,22 @@ local lgi = require('lgi')
 local GObject = lgi.require('GObject', '2.0')
 
 ---@class AstalLuaBinding: table
----@field emitter table | GObject.Object
----@field property? string
----@field transform_fn function
+---@field private emitter table | AstalLuaVariable | GObject.Object
+---@field private property? string
+---@field private transform_fn function
 ---@field private __index AstalLuaBinding
----@overload fun(emitter: table | userdata, property?: string): AstalLuaBinding
+---@overload fun(emitter: GObject.Object, property: string): AstalLuaBinding
+---@overload fun(emitter: AstalLuaVariable): AstalLuaBinding
+---@overload fun(emitter: { subscribe: function, get: function }): AstalLuaBinding
 local Binding = {}
 Binding.__index = Binding ---@diagnostic disable-line
+Binding.__type = 'Binding'
 
----@param emitter table | Variable | userdata
+function Binding:is_type_of(object)
+    return type(object) == 'table' and object.__type == self.__type
+end
+
+---@param emitter table | AstalLuaVariable | userdata
 ---@param property? string
 function Binding.new(emitter, property)
     return setmetatable({
@@ -70,6 +77,7 @@ function Binding:subscribe(callback)
     end
 end
 
+---@diagnostic disable-next-line
 return setmetatable(Binding, {
     __call = function(_, emitter, prop)
         return Binding.new(emitter, prop)
