@@ -1,92 +1,61 @@
 local lgi = require('lgi')
----@type Astal
-local Astal = lgi.require('Astal', '4.0')
----@type AstalIO
-local AstalIO = lgi.require('AstalIO', '0.1')
+local Gtk = lgi.require('Gtk', '4.0')
+local Gdk = lgi.require('Gdk', '4.0')
+local GLib = lgi.require('GLib', '2.0')
+local ApplicationBase = require('astal.application')
 
----@class Application: Astal.Application
----@overload fun(): Application
-local Application = Astal.Application:derive('AstalLuaApplication')
-local request_handler
+local DISPLAY = Gdk.Display.get_default()
 
-function Application:do_request(msg, conn)
-    if type(request_handler) == 'function' then
-        request_handler(msg, function(response)
-            AstalIO.write_sock(conn, tostring(response), function(_, res)
-                AstalIO.write_sock_finish(res)
-            end)
-        end)
-    else
-        Astal.Application.do_request(self, msg, conn)
+---@class AstalLuaApplicationGtk4: AstalLuaApplicationBase,Gtk.Application
+local ApplicationGtk4 = ApplicationBase
+
+ApplicationGtk4._attribute.monitors = {
+    get = function()
+        local list = DISPLAY:get_monitors()
+        local monitors = {}
+
+        for i = 1, list:get_n_items() do
+            table.insert(monitors, list:get_item(i - 1))
+        end
+
+        return monitors
+    end,
+}
+
+function ApplicationGtk4:add_css_provider(provider)
+    Gtk.StyleContext.add_provider_for_display(DISPLAY, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
+    table.insert(self.priv.css_providers, provider)
+end
+
+function ApplicationGtk4:remove_css_provider(provider)
+    Gtk.StyleContext.remove_provider_for_display(
+        DISPLAY,
+        provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_USER
+    )
+
+    for index, prov in ipairs(self.priv.css_providers) do
+        if prov == provider then
+            table.remove(self.priv.css_providers, index)
+        end
     end
 end
 
-function Application:quit(code)
-    Astal.Application.quit(self)
-    os.exit(code)
+function ApplicationGtk4:reset_css()
+    for _, provider in ipairs(self.priv.css_providers) do
+        Gtk.StyleContext.remove_provider_for_display(DISPLAY, provider)
+    end
+
+    self.priv.css_providers = {}
 end
 
----@class StartConfig
----@field icons? string
----@field instance_name? string
----@field gtk_theme? string
----@field icon_theme? string
----@field cursor_theme? string
----@field css? string
----@field hold? boolean
----@field request_handler? fun(msg: string, response: fun(res: any)): nil
----@field main? fun(...): nil
----@field client? fun(message: fun(msg: string): string, ...): nil
-
----@param config? StartConfig
-function Application:start(config)
-    config = config or {}
-
-    config.client = config.client
-        or function()
-            print('Astal instance "' .. self.instance_name .. '" is already running')
-            os.exit(1)
-        end
-
-    if config.hold == nil then
-        config.hold = true
+function ApplicationGtk4:add_icons(path)
+    if path and GLib.file_test(path, 'IS_DIR') and GLib.file_test(path, 'EXISTS') then
+        Gtk.IconTheme.get_for_display(DISPLAY):add_search_path(path)
     end
-
-    request_handler = config.request_handler
-
-    if config.css then
-        self:apply_css(config.css)
-    end
-    if config.icons then
-        self:add_icons(config.icons)
-    end
-
-    for _, key in ipairs({ 'instance_name', 'gtk_theme', 'icon_theme', 'cursor_theme' }) do
-        if config[key] then
-            self[key] = config[key]
-        end
-    end
-
-    self.on_activate = function()
-        if type(config.main) == 'function' then
-            config.main(table.unpack(arg))
-        end
-        if config.hold then
-            self:hold()
-        end
-    end
-
-    local _, err = self:acquire_socket()
-
-    if err ~= nil then
-        return config.client(function(msg)
-            return AstalIO.send_request(self.instance_name, msg)
-        end, table.unpack(arg))
-    end
-
-    self:run(nil)
 end
 
-local app = Application()
+local app = ApplicationGtk4()
 
 return app
