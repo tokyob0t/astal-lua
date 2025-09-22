@@ -20,19 +20,30 @@ dependencies = {
 build = {
     type = 'builtin',
     modules = {
+        ['astal.init'] = 'astal/init.lua',
         ['astal.binding'] = 'astal/binding.lua',
         ['astal.file'] = 'astal/file.lua',
-        ['astal.init'] = 'astal/init.lua',
         ['astal.process'] = 'astal/process.lua',
         ['astal.time'] = 'astal/time.lua',
         ['astal.variable'] = 'astal/variable.lua',
-        ['astal.gtk3.app'] = 'astal/gtk3/app.lua',
+        ['astal.application'] = 'astal/application.lua',
+        --- Gtk4
         ['astal.gtk3.init'] = 'astal/gtk3/init.lua',
         ['astal.gtk3.astalify'] = 'astal/gtk3/astalify.lua',
         ['astal.gtk3.widget'] = 'astal/gtk3/widget.lua',
-        ['astal.gtk4.app'] = 'astal/gtk4/app.lua',
+        ['astal.gtk3.app'] = 'astal/gtk3/app.lua',
+        --- Gtk4
         ['astal.gtk4.init'] = 'astal/gtk4/init.lua',
         ['astal.gtk4.astalify'] = 'astal/gtk4/astalify.lua',
         ['astal.gtk4.widget'] = 'astal/gtk4/widget.lua',
+        ['astal.gtk4.app'] = 'astal/gtk4/app.lua',
+    },
+    install = {
+        bin = {
+            ['astal-lua'] = 'bin/init.lua',
+        },
+    },
+    build_dependencies = {
+        { 'argparse >= 0.8.1', optional = true },
     },
 }

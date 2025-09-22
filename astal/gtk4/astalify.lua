@@ -85,8 +85,6 @@ local function merge_bindings(array)
     return bind(Variable.derive(bindings, get_values))
 end
 
----@alias Connectable GObject.Object | AstalLuaVariable | { subscribe: function }
-
 ---@alias EventControllerKey fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
 ---@alias EventControllerButton fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
 
@@ -129,7 +127,7 @@ local function setup_controllers(widget, args)
         for signal, handler in pairs(signals) do
             if handler then
                 widget:hook(controller, signal, function(_, ...)
-                    handler(widget, ...)
+                    return handler(widget, ...)
                 end)
             end
         end
@@ -170,13 +168,13 @@ local function setup_controllers(widget, args)
             widget:add_controller(controller)
             if on_button_pressed then
                 widget:hook(controller, 'pressed', function(_, ...)
-                    on_button_pressed(widget, controller.button, ...)
+                    return on_button_pressed(widget, controller.button, ...)
                 end)
             end
 
             if on_button_released then
                 widget:hook(controller, 'released', function(_, ...)
-                    on_button_released(widget, controller.button, ...)
+                    return on_button_released(widget, controller.button, ...)
                 end)
             end
         end
@@ -329,23 +327,21 @@ return function(ctor, config)
         set(self, children)
     end
 
-    -- ctor.get_children = function(self)
-    --     return self.children
-    -- end
+    ctor.get_children = function(self)
+        return self.children
+    end
 
-    -- ctor.set_children = function(self, children)
-    --     self.children = children
-    -- end
+    ctor.set_children = function(self, children)
+        self.children = children
+    end
 
     ---@diagnostic disable-next-line:undefined-field
     ctor._attribute.children = {
         set = function(self, children)
-            local setter = set_children[self._name]
-            setter(self, children)
+            set_children[self._name](self, children)
         end,
         get = function(self)
-            local getter = get_children[self._name]
-            return getter(self)
+            return get_children[self._name](self)
         end,
     }
 

@@ -17,8 +17,10 @@ function Binding:is_type_of(object)
     return type(object) == 'table' and object.__type == self.__type
 end
 
----@param emitter table | AstalLuaVariable | userdata
----@param property? string
+---@param emitter GObject.Object
+---@param property string
+---@overload fun(emitter: AstalLuaVariable): AstalLuaBinding
+---@overload fun(emitter: { subscribe: function, get: function }): AstalLuaBinding
 function Binding.new(emitter, property)
     return setmetatable({
         emitter = emitter,

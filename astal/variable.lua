@@ -5,6 +5,8 @@ local GObject = lgi.require('GObject', '2.0')
 local Process = require('astal.process')
 local Time = require('astal.time')
 
+---@alias Connectable GObject.Object | AstalLuaVariable | { subscribe: function }
+
 ---@class AstalLuaVariable: GObject.Object
 ---@field value any
 ---@field private priv { poll_cancel: function }
