@@ -7,12 +7,12 @@ local Time = require('astal.time')
 
 ---@class AstalLuaVariable: GObject.Object
 ---@field value any
----@field private priv table
+---@field private priv { poll_cancel: function }
 ---@field private _name "AstalLuaVariable"
 ---@field private _attribute table
 ---@field private _property table
 ---@overload fun(args: { value: any }): AstalLuaVariable
-local Variable = GObject.Object:derive('AstalLuaVariable')
+local Variable = GObject.Object:derive('AstalLua.Variable')
 
 Variable._property.value = GObject.ParamSpecBoolean(
     'value',
@@ -48,7 +48,7 @@ function Variable:set(value)
 end
 
 function Variable:is_polling()
-    return self.priv.poll ~= nil
+    return self.priv.poll_cancel ~= nil
 end
 
 function Variable:start_poll()
@@ -57,11 +57,11 @@ function Variable:start_poll()
     end
 
     if self.priv.poll_fn then
-        self.priv.poll = Time.interval(self.priv.poll_interval, function()
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
             self:set(self.priv.poll_fn(self:get()))
         end)
     elseif self.priv.poll_exec then
-        self.priv.poll = Time.interval(self.priv.poll_interval, function()
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
             Process.exec_async(self.priv.poll_exec, function(out, err)
                 if err ~= nil then
                     return self:emit_error(err)
@@ -75,9 +75,9 @@ end
 
 function Variable:stop_poll()
     if self:is_polling() then
-        self.priv.poll:cancel()
+        self.priv.poll_cancel()
     end
-    self.priv.poll = nil
+    self.priv.poll_cancel = nil
 end
 
 ---@param interval integer
