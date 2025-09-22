@@ -46,6 +46,16 @@ DrawingArea._attribute.draw_func = {
     end,
 }
 
+-- ---@type Gtk.Image | { pixbuf: GdkPixbuf.Pixbuf }
+-- local Image = Gtk.Image
+
+-- ---@diagnostic disable-next-line
+-- Image._attribute.pixbuf = {
+--     set = function(self, pixbuf)
+--         self:set_from_pixbuf(pixbuf)
+--     end,
+-- }
+
 ---@param children any[]
 ---@return ( Gtk.Widget | Gtk.Label )[]
 local filter = function(children)
@@ -102,6 +112,7 @@ local filter = function(children)
 end
 
 return {
+    --- Utility function for container widgets
     __filter = filter,
     astalify = astalify,
 
@@ -109,7 +120,28 @@ return {
 
     Window = astalify(Astal.Window),
 
-    Box = astalify(Box, {}),
+    Box = astalify(Box, {
+        set_children = function(self, children)
+            for _, ch in ipairs(self:get_children()) do
+                self:remove(ch)
+            end
+
+            for _, ch in ipairs(filter(children)) do
+                self:append(ch)
+            end
+        end,
+        get_children = function(self)
+            local children = {}
+            local child = self:get_first_child()
+
+            while child do
+                table.insert(children, child)
+                child = child:get_next_sibling()
+            end
+
+            return children
+        end,
+    }),
 
     Entry = astalify(Gtk.Entry),
 
@@ -120,7 +152,6 @@ return {
             self.center_widget = children[2] or Gtk.Box({})
             self.end_widget = children[3] or Gtk.Box({})
         end,
-        ---@param self Gtk.CenterBox
         get_children = function(self)
             return { self.start_widget, self.center_widget, self.end_widget }
         end,

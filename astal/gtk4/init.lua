@@ -1,7 +1,6 @@
 local lgi = require('lgi')
 
 return {
-    -- App = require('astal.gtk4.app'),
     astalify = require('astal.gtk4.astalify'),
     Widget = require('astal.gtk4.widget'),
 
