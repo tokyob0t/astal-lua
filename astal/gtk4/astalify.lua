@@ -85,26 +85,22 @@ local function merge_bindings(array)
     return bind(Variable.derive(bindings, get_values))
 end
 
----@alias EventControllerKey fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
----@alias EventControllerButton fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
-
----@alias EventController {
----on_focus_enter: fun(self: Gtk.Widget),
----on_focus_leave: fun(self: Gtk.Widget),
----on_key_pressed: EventControllerKey,
----on_key_released: EventControllerKey,
----on_key_modifier: fun(self: Gtk.Widget, state: Gdk.ModifierType),
----on_hover_enter: fun(self: Gtk.Widget, x: number, y: number),
----on_hover_leave: fun(self: Gtk.Widget),
----on_motion: fun(self: Gtk.Widget, x: number, y: number),
----on_scroll: fun(self: Gtk.Widget, dx: number, dy: number),
----on_scroll_decelerate: fun(self: Gtk.Widget, velocity_x: number, velocity_y: number),
----on_button_pressed: EventControllerButton,
----on_button_released: EventControllerButton,
----on_drag_begin: fun(self: Gtk.Widget, start_x: number, start_y: number),
----on_drag_update: fun(self: Gtk.Widget, offset_x: number, offset_y: number),
----on_drag_end: fun(self: Gtk.Widget, offset_x: number, offset_y: number),
----}
+---@class EventController
+---@field on_focus_enter fun(self: Gtk.Widget)
+---@field on_focus_leave fun(self: Gtk.Widget)
+---@field on_key_pressed fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
+---@field on_key_released fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
+---@field on_key_modifier fun(self: Gtk.Widget, state: Gdk.ModifierType)
+---@field on_hover_enter fun(self: Gtk.Widget, x: number, y: number)
+---@field on_hover_leave fun(self: Gtk.Widget)
+---@field on_motion fun(self: Gtk.Widget, x: number, y: number)
+---@field on_scroll fun(self: Gtk.Widget, dx: number, dy: number)
+---@field on_scroll_decelerate fun(self: Gtk.Widget, velocity_x: number, velocity_y: number)
+---@field on_button_pressed fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
+---@field on_button_released fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
+---@field on_drag_begin fun(self: Gtk.Widget, start_x: number, start_y: number)
+---@field on_drag_update fun(self: Gtk.Widget, offset_x: number, offset_y: number)
+---@field on_drag_end fun(self: Gtk.Widget, offset_x: number, offset_y: number)
 
 ---@param widget Gtk.Widget | Astalified4
 ---@param args EventController
@@ -166,6 +162,7 @@ local function setup_controllers(widget, args)
 
         for _, controller in ipairs({ primary, middle, secondary }) do
             widget:add_controller(controller)
+
             if on_button_pressed then
                 widget:hook(controller, 'pressed', function(_, ...)
                     return on_button_pressed(widget, controller.button, ...)
