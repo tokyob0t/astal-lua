@@ -37,6 +37,8 @@ build = {
         ['astal.gtk4.astalify'] = 'astal/gtk4/astalify.lua',
         ['astal.gtk4.widget'] = 'astal/gtk4/widget.lua',
         ['astal.gtk4.app'] = 'astal/gtk4/app.lua',
+        --- Additional
+        ['astal.requests'] = 'astal/requests.lua',
     },
     install = {
         bin = {
