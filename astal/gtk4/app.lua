@@ -6,7 +6,7 @@ local ApplicationBase = require('astal.application')
 
 local DISPLAY = Gdk.Display.get_default()
 
----@class AstalLuaApplicationGtk4: AstalLuaApplicationBase,Gtk.Application
+---@class AstalLua.ApplicationGtk4: AstalLua.ApplicationBase
 local ApplicationGtk4 = ApplicationBase
 
 ApplicationGtk4._attribute.monitors = {
@@ -56,6 +56,7 @@ function ApplicationGtk4:add_icons(path)
     end
 end
 
+---@type AstalLua.ApplicationGtk4
 local app = ApplicationGtk4()
 
 return app

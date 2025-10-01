@@ -7,7 +7,7 @@ local ApplicationBase = require('astal.application')
 local DISPLAY = Gdk.Display.get_default()
 local SCREEN = Gdk.Screen.get_default()
 
----@class AstalLuaApplicationGtk3: AstalLuaApplicationBase
+---@class AstalLua.ApplicationGtk3: AstalLua.ApplicationBase
 local ApplicationGtk3 = ApplicationBase
 
 ApplicationGtk3._attribute.monitors = {
@@ -88,6 +88,7 @@ function ApplicationGtk3:start(args)
     self:run(arg)
 end
 
+---@type AstalLua.ApplicationGtk3
 local app = ApplicationGtk3()
 
 return app
