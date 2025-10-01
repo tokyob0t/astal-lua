@@ -1,12 +1,11 @@
 local astal = require("astal")
 
 local Apps = astal.require("AstalApps")
-local App = require("astal.gtk3.app")
-local Astal = require("astal.gtk3").Astal
+local Widget = require("astal.gtk3.widget")
 local Gdk = require("astal.gtk3").Gdk
+local App = require("astal.gtk3.app")
 local Variable = astal.Variable
 local bind = astal.bind
-local Widget = require("astal.gtk3.widget")
 
 local slice = require("lib").slice
 local map = require("lib").map

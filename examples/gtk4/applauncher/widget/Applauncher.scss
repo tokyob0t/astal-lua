@@ -27,8 +27,7 @@ window#launcher {
             min-height: 0;
             padding: 0.5rem;
 
-            icon {
-                font-size: 3em;
+            image {
                 margin-right: 0.3rem;
             }
 
@@ -45,8 +44,7 @@ window#launcher {
         box.not-found {
             padding: 1rem;
 
-            icon {
-                font-size: 6em;
+            image{
                 color: gtkalpha($fg-color, 0.7);
             }
 
