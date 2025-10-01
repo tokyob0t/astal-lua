@@ -1,5 +1,5 @@
+require("astal.gtk3")
 local astal = require("astal")
-local App = require("astal.gtk3.app")
 
 local Bar = require("widget.Bar")
 local src = require("lib").src
@@ -9,11 +9,13 @@ local css = "/tmp/style.css"
 
 astal.exec("sass " .. scss .. " " .. css)
 
+local App = require("astal.gtk3.app")
+
 App:start({
 	instance_name = "lua",
 	css = css,
-	request_handler = function(msg, res)
-		print(msg)
+	request_handler = function(args, res)
+		print(table.unpack(args))
 		res("ok")
 	end,
 	main = function()

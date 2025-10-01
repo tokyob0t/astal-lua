@@ -25,20 +25,22 @@ local function AppButton(app)
 			app:launch()
 		end,
 		Widget.Box({
-			Widget.Image({ icon_name = app.icon_name, pixel_size = 32 }),
+			Widget.Image({ icon_name = app.icon_name, pixel_size = 48 }),
 			Widget.Box({
 				valign = "CENTER",
 				vertical = true,
 				Widget.Label({
 					css_classes = { "name" },
-					wrap = true,
 					xalign = 0,
+					ellipsize = "END",
+					max_width_chars = 10,
 					label = app.name,
 				}),
 				app.description and Widget.Label({
 					css_classes = { "description" },
-					wrap = true,
 					xalign = 0,
+					ellipsize = "END",
+					max_width_chars = 30,
 					label = app.description,
 				}),
 			}),
@@ -64,7 +66,7 @@ return function()
 
 	return Widget.Window({
 		name = "launcher",
-		anchor = { "TOP", "BOTTOM" },
+		anchor = { "TOP", "LEFT", "RIGHT", "BOTTOM" },
 		exclusivity = "IGNORE",
 		keymode = "ON_DEMAND",
 		application = App,
@@ -78,7 +80,7 @@ return function()
 				hexpand = true,
 				vexpand = true,
 				on_button_pressed = hide,
-				width_request = 4000,
+				-- width_request = 4000,
 			}),
 			Widget.Box({
 				hexpand = false,
@@ -90,7 +92,6 @@ return function()
 					css_classes = { "Applauncher" },
 					Widget.Entry({
 						placeholder_text = "Search",
-						-- text = bind(text),
 						on_changed = function(self) text:set(self.text) end,
 						on_activate = on_enter,
 					}),
@@ -104,7 +105,10 @@ return function()
 						css_classes = { "not-found" },
 						vertical = true,
 						visible = list:as(function(l) return #l == 0 end),
-						Widget.Image({ icon_name = "system-search-symbolic" }),
+						Widget.Image({
+							icon_name = "system-search-symbolic",
+							pixel_size = 96,
+						}),
 						Widget.Label({ label = "No match found" }),
 					}),
 				}),
@@ -115,7 +119,7 @@ return function()
 				}),
 			}),
 			Widget.Box({
-				width_request = 4000,
+				-- width_request = 4000,
 				hexpand = true,
 				vexpand = true,
 				on_button_pressed = hide,
