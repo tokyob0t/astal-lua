@@ -56,64 +56,7 @@ DrawingArea._attribute.draw_func = {
 --     end,
 -- }
 
----@param children any[]
----@return ( Gtk.Widget | Gtk.Label )[]
-local filter = function(children)
-    local function filter(tbl, fn)
-        local copy = {}
-        for key, value in pairs(tbl) do
-            if fn(value, key) then
-                if type(key) == 'number' then
-                    table.insert(copy, value)
-                else
-                    copy[key] = value
-                end
-            end
-        end
-        return copy
-    end
-
-    local function map(tbl, fn)
-        local copy = {}
-        for key, value in pairs(tbl) do
-            copy[key] = fn(value)
-        end
-        return copy
-    end
-
-    local function flatten(tbl)
-        local copy = {}
-        for _, value in pairs(tbl) do
-            if type(value) == 'table' and getmetatable(value) == nil then
-                for _, inner in pairs(flatten(value)) do
-                    table.insert(copy, inner)
-                end
-            else
-                table.insert(copy, value)
-            end
-        end
-        return copy
-    end
-
-    return map(
-        filter(flatten(children), function(item)
-            return not not item
-        end),
-        function(item)
-            if Gtk.Widget:is_type_of(item) then
-                return item
-            end
-            return Gtk.Label({
-                visible = true,
-                label = tostring(item),
-            })
-        end
-    )
-end
-
 return {
-    --- Utility function for container widgets
-    __filter = filter,
     astalify = astalify,
 
     DrawingArea = astalify(DrawingArea),
@@ -126,7 +69,7 @@ return {
                 self:remove(ch)
             end
 
-            for _, ch in ipairs(filter(children)) do
+            for _, ch in ipairs(children) do
                 self:append(ch)
             end
         end,
@@ -147,7 +90,6 @@ return {
 
     CenterBox = astalify(Gtk.CenterBox, {
         set_children = function(self, children)
-            children = filter(children)
             self.start_widget = children[1] or Gtk.Box({})
             self.center_widget = children[2] or Gtk.Box({})
             self.end_widget = children[3] or Gtk.Box({})
@@ -182,7 +124,7 @@ return {
 
     MenuButton = astalify(Gtk.MenuButton, {
         set_children = function(self, children)
-            for _, child in ipairs(filter(children)) do
+            for _, child in ipairs(children) do
                 if Gtk.Popover:is_type_of(children) then
                     self:set_popover(child)
                 else
