@@ -1,6 +1,5 @@
 local lgi = require('lgi')
 
----@type GObject
 local GObject = lgi.require('GObject', '2.0')
 local Process = require('astal.process')
 local Time = require('astal.time')
@@ -9,7 +8,7 @@ local Time = require('astal.time')
 
 ---@class AstalLuaVariable: GObject.Object
 ---@field value any
----@field private priv { poll_cancel: function }
+---@field private priv table
 ---@field private _name "AstalLuaVariable"
 ---@field private _attribute table
 ---@field private _property table
@@ -124,7 +123,7 @@ end
 
 function Variable:stop_watch()
     if self:is_watching() then
-        self.priv.watch:kill()
+        self.priv.watch:quit()
     end
     self.priv.watch = nil
 end
