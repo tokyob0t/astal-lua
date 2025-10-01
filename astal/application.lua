@@ -24,7 +24,7 @@ local IFACE_INFO = Gio.DBusInterfaceInfo({
     },
 })
 
----@class AstalLuaApplicationBase: Gtk.Application
+---@class AstalLua.ApplicationBase: Gtk.Application
 ---@field monitors Gdk.Monitor[]
 local Application = Gtk.Application:derive('AstalLua.ApplicationBase')
 
@@ -81,8 +81,8 @@ function Application:register_dbus()
                     )
                 end
 
-                for _, fn in ipairs(self.priv.request_handlers) do
-                    fn(request_args, function(r)
+                for i = #self.priv.request_handlers, 1, -1 do
+                    self.priv.request_handlers[i](request_args, function(r)
                         callback:return_value(GLib.Variant('(s)', { tostring(r) }))
                     end)
                 end
@@ -136,22 +136,22 @@ function Application:apply_css(style, reset)
     self:add_css_provider(provider)
 end
 
--- function Application:add_css_provider(provider)
---     error("The method 'add_css_provider' must be overridden in a subclass", 2)
--- end
+function Application:add_css_provider(provider)
+    error("The method 'add_css_provider' must be overridden in a subclass", 2)
+end
 
--- function Application:remove_css_provider(provider)
---     error("The method 'remove_css_provider' must be overridden in a subclass", 2)
--- end
+function Application:remove_css_provider(provider)
+    error("The method 'remove_css_provider' must be overridden in a subclass", 2)
+end
 
--- function Application:reset_css()
---     error("The method 'reset_css' must be overridden in a subclass", 2)
--- end
+function Application:reset_css()
+    error("The method 'reset_css' must be overridden in a subclass", 2)
+end
 
--- ---@param path string
--- function Application:add_icons(path)
---     error("The method 'add_icons' must be overridden in a subclass", 2)
--- end
+---@param path string
+function Application:add_icons(path)
+    error("The method 'add_icons' must be overridden in a subclass", 2)
+end
 
 ---@param fn fun(args: string[], callback: fun(response: string))
 function Application:add_request_handler(fn)
@@ -207,7 +207,7 @@ function Application:start(args)
         end
     end
 
-    self:run(arg)
+    self:quit(self:run({ table.unpack(arg, 0, #arg) }))
 end
 
 function Application:quit(code)
