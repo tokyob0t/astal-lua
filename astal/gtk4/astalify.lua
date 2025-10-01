@@ -85,6 +85,23 @@ local function merge_bindings(array)
     return bind(Variable.derive(bindings, get_values))
 end
 
+local function ensure_widgets(children)
+    return map(
+        filter(flatten(children), function(item)
+            return not not item
+        end),
+        function(item)
+            if Gtk.Widget:is_type_of(item) then
+                return item
+            end
+            return Gtk.Label({
+                visible = true,
+                label = tostring(item),
+            })
+        end
+    )
+end
+
 ---@class EventController
 ---@field on_focus_enter fun(self: Gtk.Widget)
 ---@field on_focus_leave fun(self: Gtk.Widget)
@@ -247,21 +264,6 @@ function Astalified4:hook(object, signalOrCallback, callback)
 end
 
 function Astalified4:set_children(children)
-    children = map(
-        filter(flatten(children), function(item)
-            return not not item
-        end),
-        function(item)
-            if Gtk.Widget:is_type_of(item) then
-                return item
-            end
-            return Gtk.Label({
-                visible = true,
-                label = tostring(item),
-            })
-        end
-    )
-
     for _, child in ipairs(children) do
         self:do_add_child(dummy_builder, child)
     end
@@ -321,7 +323,7 @@ return function(ctor, config)
             end
         end
 
-        set(self, children)
+        set(self, ensure_widgets(children))
     end
 
     ctor.get_children = function(self)
