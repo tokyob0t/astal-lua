@@ -1,30 +1,47 @@
 local lgi = require('lgi')
----@type AstalIO
-local AstalIO = lgi.require('AstalIO', '0.1')
-local GObject = lgi.require('GObject', '2.0')
+local GLib = lgi.require('GLib')
 
 local M = {}
 
-M.Time = AstalIO.Time
-
 ---@param interval number
 ---@param fn function
----@return { cancel: function, on_now: function }
+---@return function
 function M.interval(interval, fn)
-    return AstalIO.Time.interval(interval, GObject.Closure(fn))
+    local id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, function()
+        fn()
+        return true
+    end)
+
+    return function()
+        GLib.source_remove(id)
+    end
 end
 
 ---@param timeout number
 ---@param fn function
----@return { cancel: function, on_now: function }
+---@return function
 function M.timeout(timeout, fn)
-    return AstalIO.Time.timeout(timeout, GObject.Closure(fn))
+    local id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, timeout, function()
+        fn()
+        return false
+    end)
+
+    return function()
+        GLib.source_remove(id)
+    end
 end
 
 ---@param fn function
----@return { cancel: function, on_now: function }
+---@return function
 function M.idle(fn)
-    return AstalIO.Time.idle(GObject.Closure(fn))
+    local id = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, function()
+        fn()
+        return false
+    end)
+
+    return function()
+        GLib.source_remove(id)
+    end
 end
 
 return M

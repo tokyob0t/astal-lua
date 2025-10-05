@@ -1,9 +1,10 @@
 local lgi = require('lgi')
 
----@type GObject
 local GObject = lgi.require('GObject', '2.0')
 local Process = require('astal.process')
 local Time = require('astal.time')
+
+---@alias Connectable GObject.Object | AstalLuaVariable | { subscribe: function }
 
 ---@class AstalLuaVariable: GObject.Object
 ---@field value any
@@ -12,7 +13,7 @@ local Time = require('astal.time')
 ---@field private _attribute table
 ---@field private _property table
 ---@overload fun(args: { value: any }): AstalLuaVariable
-local Variable = GObject.Object:derive('AstalLuaVariable')
+local Variable = GObject.Object:derive('AstalLua.Variable')
 
 Variable._property.value = GObject.ParamSpecBoolean(
     'value',
@@ -48,7 +49,7 @@ function Variable:set(value)
 end
 
 function Variable:is_polling()
-    return self.priv.poll ~= nil
+    return self.priv.poll_cancel ~= nil
 end
 
 function Variable:start_poll()
@@ -57,11 +58,11 @@ function Variable:start_poll()
     end
 
     if self.priv.poll_fn then
-        self.priv.poll = Time.interval(self.priv.poll_interval, function()
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
             self:set(self.priv.poll_fn(self:get()))
         end)
     elseif self.priv.poll_exec then
-        self.priv.poll = Time.interval(self.priv.poll_interval, function()
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
             Process.exec_async(self.priv.poll_exec, function(out, err)
                 if err ~= nil then
                     return self:emit_error(err)
@@ -75,9 +76,9 @@ end
 
 function Variable:stop_poll()
     if self:is_polling() then
-        self.priv.poll:cancel()
+        self.priv.poll_cancel()
     end
-    self.priv.poll = nil
+    self.priv.poll_cancel = nil
 end
 
 ---@param interval integer
@@ -122,7 +123,7 @@ end
 
 function Variable:stop_watch()
     if self:is_watching() then
-        self.priv.watch:kill()
+        self.priv.watch:quit()
     end
     self.priv.watch = nil
 end

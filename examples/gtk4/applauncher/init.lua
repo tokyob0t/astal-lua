@@ -1,4 +1,3 @@
-require("astal.gtk3")
 local astal = require("astal")
 
 local AppLauncher = require("widget.Applauncher")
@@ -9,7 +8,7 @@ local css = "/tmp/style.css"
 
 astal.exec("sass " .. scss .. " " .. css)
 
-local App = require("astal.gtk3.app")
+local App = require("astal.gtk4.app")
 
 App:start({
 	instance_name = "launcher",

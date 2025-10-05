@@ -1,9 +1,9 @@
 local astal = require("astal")
 
 local Apps = astal.require("AstalApps")
-local Widget = require("astal.gtk3.widget")
-local Gdk = require("astal.gtk3").Gdk
-local App = require("astal.gtk3.app")
+local App = require("astal.gtk4.app")
+local Widget = require("astal.gtk4.widget")
+local Gdk = require("astal.gtk4").Gdk
 local Variable = astal.Variable
 local bind = astal.bind
 
@@ -19,26 +19,28 @@ end
 
 local function AppButton(app)
 	return Widget.Button({
-		class_name = "AppButton",
+		css_classes = { "AppButton" },
 		on_clicked = function()
 			hide()
 			app:launch()
 		end,
 		Widget.Box({
-			Widget.Icon({ icon = app.icon_name }),
+			Widget.Image({ icon_name = app.icon_name, pixel_size = 48 }),
 			Widget.Box({
 				valign = "CENTER",
 				vertical = true,
 				Widget.Label({
-					class_name = "name",
-					wrap = true,
+					css_classes = { "name" },
 					xalign = 0,
+					ellipsize = "END",
+					max_width_chars = 10,
 					label = app.name,
 				}),
 				app.description and Widget.Label({
-					class_name = "description",
-					wrap = true,
+					css_classes = { "description" },
 					xalign = 0,
+					ellipsize = "END",
+					max_width_chars = 30,
 					label = app.description,
 				}),
 			}),
@@ -64,32 +66,32 @@ return function()
 
 	return Widget.Window({
 		name = "launcher",
-		anchor = { "TOP", "BOTTOM" },
+		anchor = { "TOP", "LEFT", "RIGHT", "BOTTOM" },
 		exclusivity = "IGNORE",
 		keymode = "ON_DEMAND",
 		application = App,
 		on_show = function() text:set("") end,
 		on_hide = function() App:quit(0) end,
-		on_key_press_event = function(self, event)
-			if event.keyval == Gdk.KEY_Escape then self:hide() end
+		on_key_pressed = function(self, keyval)
+			if keyval == Gdk.KEY_Escape then self:hide() end
 		end,
 		Widget.Box({
-			Widget.EventBox({
-				expand = true,
-				on_click = hide,
-				width_request = 4000,
+			Widget.Box({
+				hexpand = true,
+				vexpand = true,
+				on_button_pressed = hide,
+				-- width_request = 4000,
 			}),
 			Widget.Box({
 				hexpand = false,
 				vertical = true,
-				Widget.EventBox({ on_click = hide, height_request = 100 }),
+				Widget.Box({ on_button_pressed = hide, height_request = 100 }),
 				Widget.Box({
 					vertical = true,
 					width_request = 500,
-					class_name = "Applauncher",
+					css_classes = { "Applauncher" },
 					Widget.Entry({
 						placeholder_text = "Search",
-						text = bind(text),
 						on_changed = function(self) text:set(self.text) end,
 						on_activate = on_enter,
 					}),
@@ -100,19 +102,27 @@ return function()
 					}),
 					Widget.Box({
 						halign = "CENTER",
-						class_name = "not-found",
+						css_classes = { "not-found" },
 						vertical = true,
 						visible = list:as(function(l) return #l == 0 end),
-						Widget.Icon({ icon = "system-search-symbolic" }),
+						Widget.Image({
+							icon_name = "system-search-symbolic",
+							pixel_size = 96,
+						}),
 						Widget.Label({ label = "No match found" }),
 					}),
 				}),
-				Widget.EventBox({ expand = true, on_click = hide }),
+				Widget.Box({
+					vexpand = true,
+					hexpand = true,
+					on_button_pressed = hide,
+				}),
 			}),
-			Widget.EventBox({
-				width_request = 4000,
-				expand = true,
-				on_click = hide,
+			Widget.Box({
+				-- width_request = 4000,
+				hexpand = true,
+				vexpand = true,
+				on_button_pressed = hide,
 			}),
 		}),
 	})
