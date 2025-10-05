@@ -137,19 +137,15 @@ local function merge_bindings(array)
     return Variable.derive(bindings, get_values)()
 end
 
----@alias Connectable GObject.Object | AstalLuaVariable | AstalLuaBinding | any
-
----@generic T
----@class astalified<T>: {
----css: string,
----class_name: string,
----toggle_class_name: fun(self: T, class_name: string, on: boolean),
----hook: fun(self: T, gobject: Connectable, signalOrCallback: string | fun(gobject: Connectable, prop: any), callback?: fun(gobject: Connectable, prop: any))
----}
+---@class Astalified3: Gtk.Widget
+---@field css string
+---@field class_name string
+---@field toggle_class_name string
+---@field hook fun(self: Gtk.Widget, gobject: Connectable, signalOrCallback: string | fun(gobject: Connectable, prop: any), callback?: fun(gobject: Connectable, prop: any) )
 
 ---@generic W: Gtk.Widget
 ---@param ctor W
----@return fun(args?: W | astalified<W> |  { setup: fun(self: W | astalified<W>): nil } | table<string, any>): W | astalified<W>
+---@return fun(args?: W | Astalified3 |  { setup: fun(self: W | Astalified3): nil } | table<string, any>): W | Astalified3
 return function(ctor)
     function ctor:hook(object, signalOrCallback, callback)
         if GObject.Object:is_type_of(object) and type(signalOrCallback) == 'string' then
@@ -222,7 +218,7 @@ return function(ctor)
         -- construct, attach bindings, add children
         local widget = ctor()
 
-        if getmetatable(children) == Binding then
+        if Binding:is_type_of(children) then
             set_children(widget, children:get())
             widget.on_destroy = children:subscribe(function(v)
                 set_children(widget, v)

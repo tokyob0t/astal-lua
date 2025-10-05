@@ -27,6 +27,24 @@ return {
     write_file_async = File.write_file_async,
     monitor_file = File.monitor_file,
 
+    ---@generic F: function
+    ---@param fn F
+    ---@return F
+    async = function(fn)
+        return function(...)
+            return lgi.Gio.Async.start(fn)(...)
+        end
+    end,
+
+    ---@generic F: function
+    ---@param fn F
+    ---@return F
+    await = function(fn)
+        return function(...)
+            return lgi.Gio.Async.call(fn)(...)
+        end
+    end,
+
     ---@generic T
     ---@type fun(libname: `T`, version?: string): T
     require = lgi.require,
