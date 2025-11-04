@@ -233,6 +233,7 @@ end
 ---@class Astalified4: Gtk.Widget
 ---@field children Gtk.Widget[]
 ---@field no_implicit_destroy boolean
+---@field css string
 ---@field hook fun(self, object: Connectable, signal: string, callback: function) | fun(self, object: Connectable, callback: function)
 ---@field get_child? fun(self): Gtk.Widget
 ---@field get_first_child? fun(self): Gtk.Widget
@@ -289,9 +290,20 @@ function Astalified4:get_children()
     return children
 end
 
+---@param css_class string
+---@param condition? boolean
+function Astalified4:toggle_css_class(css_class, condition)
+    if condition then
+        self:add_css_class(css_class)
+    else
+        self:remove_css_class(css_class)
+    end
+end
+
 local set_children = {}
 local get_children = {}
 local no_implicit_destroy = {}
+local css_providers = {}
 
 ---@alias ConstructorProps Astalified4 | EventController | table<any, any>
 
@@ -300,11 +312,12 @@ local no_implicit_destroy = {}
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
 ---@return fun(args?: T | ConstructorProps | { setup: fun(self: T | Astalified4) }): T | Astalified4
 return function(ctor, config)
+    ---@diagnostic disable:undefined-field
+    ---@diagnostic disable:inject-field
+
     if not config then
         config = {}
     end
-
-    ctor.hook = Astalified4.hook ---@diagnostic disable-line:inject-field
 
     local set, get =
         config.set_children or Astalified4.set_children,
@@ -326,6 +339,9 @@ return function(ctor, config)
         set(self, ensure_widgets(children))
     end
 
+    ctor.hook = Astalified4.hook
+    ctor.toggle_css_class = Astalified4.toggle_css_class
+
     ctor.get_children = function(self)
         return self.children
     end
@@ -334,7 +350,14 @@ return function(ctor, config)
         self.children = children
     end
 
-    ---@diagnostic disable-next-line:undefined-field
+    ctor.get_css = function(self)
+        return self.css
+    end
+
+    ctor.set_css = function(self, css)
+        self.css = css
+    end
+
     ctor._attribute.children = {
         set = function(self, children)
             set_children[self._name](self, children)
@@ -344,7 +367,6 @@ return function(ctor, config)
         end,
     }
 
-    ---@diagnostic disable-next-line:undefined-field
     ctor._attribute.no_implicit_destroy = {
         get = function(self)
             return no_implicit_destroy[self] or false
@@ -356,6 +378,31 @@ return function(ctor, config)
                 end
             end
             no_implicit_destroy[self] = v
+        end,
+    }
+
+    ctor._attribute.css = {
+        set = function(self, css)
+            local ctx = self:get_style_context()
+
+            if css_providers[self] then
+                css_providers[self] = ctx:remove_provider(css_providers[self])
+            end
+
+            if not string.find(css, '{', 1, true) or not string.find(css, '}', 1, true) then
+                css = '* { ' .. css .. ' }'
+            end
+
+            css_providers[self] = Gtk.CssProvider.new()
+
+            css_providers[self]:load_from_string(css)
+
+            ctx:add_provider(css_providers[self], Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        end,
+        get = function(self)
+            if css_providers[self] then
+                return css_providers[self]:to_string()
+            end
         end,
     }
 

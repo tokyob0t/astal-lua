@@ -2,12 +2,17 @@ local lgi = require('lgi')
 local Gtk = lgi.require('Gtk', '4.0')
 local Gdk = lgi.require('Gdk', '4.0')
 local GLib = lgi.require('GLib', '2.0')
+local GObject = lgi.require('GObject', '2.0')
+local Gio = lgi.require('Gio', '2.0')
 local ApplicationBase = require('astal.application')
 
 local DISPLAY = Gdk.Display.get_default()
 
 ---@class AstalLua.ApplicationGtk4: AstalLua.ApplicationBase
 local ApplicationGtk4 = ApplicationBase
+
+ApplicationGtk4._property.monitors =
+    GObject.param_spec_object('monitors', nil, nil, Gio.ListModel, { 'READABLE' })
 
 ApplicationGtk4._attribute.monitors = {
     get = function()
@@ -56,7 +61,44 @@ function ApplicationGtk4:add_icons(path)
     end
 end
 
+function ApplicationGtk4:_init()
+    self.priv.css_providers = {}
+    self.priv.request_handlers = {}
+end
+
+---@param callback fun(gdkmonitor: number, index: integer)
+function ApplicationGtk4:on_monitor_added(callback)
+    local list = Gdk.Display.get_default():get_monitors()
+
+    local id = list.on_items_changed:connect(function(_, position, _, added)
+        if added == 1 then
+            callback(list:get_item(position), position + 1)
+        end
+    end)
+
+    return function()
+        GObject.signal_handler_disconnect(list, id)
+    end
+end
+
+---@param callback fun(index: number)
+function ApplicationGtk4:on_monitor_removed(callback)
+    local list = Gdk.Display.get_default():get_monitors()
+
+    local id = list.on_items_changed:connect(function(_, position, removed)
+        if removed == 1 then
+            callback(position + 1)
+        end
+    end)
+
+    return function()
+        GObject.signal_handler_disconnect(list, id)
+    end
+end
+
 ---@type AstalLua.ApplicationGtk4
-local app = ApplicationGtk4()
+local app = ApplicationGtk4({
+    flags = { 'HANDLES_COMMAND_LINE' },
+})
 
 return app
