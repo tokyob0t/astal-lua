@@ -23,6 +23,9 @@ Box._attribute.vertical = {
     end,
     set = function(self, vertical)
         self.orientation = vertical and 'VERTICAL' or 'HORIZONTAL'
+
+        self:toggle_css_class('vertical', self.orientation == 'VERTICAL')
+        self:toggle_css_class('horizontal', self.orientation == 'HORIZONTAL')
     end,
 }
 
@@ -125,7 +128,7 @@ return {
     MenuButton = astalify(Gtk.MenuButton, {
         set_children = function(self, children)
             for _, child in ipairs(children) do
-                if Gtk.Popover:is_type_of(children) then
+                if Gtk.Popover:is_type_of(child) then
                     self:set_popover(child)
                 else
                     self:set_child(child)
