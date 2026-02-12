@@ -102,25 +102,16 @@ local function ensure_widgets(children)
     )
 end
 
----@class EventController
----@field on_focus_enter fun(self: Gtk.Widget)
----@field on_focus_leave fun(self: Gtk.Widget)
----@field on_key_pressed fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
----@field on_key_released fun(self: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType)
----@field on_key_modifier fun(self: Gtk.Widget, state: Gdk.ModifierType)
----@field on_hover_enter fun(self: Gtk.Widget, x: number, y: number)
----@field on_hover_leave fun(self: Gtk.Widget)
----@field on_motion fun(self: Gtk.Widget, x: number, y: number)
----@field on_scroll fun(self: Gtk.Widget, dx: number, dy: number)
----@field on_scroll_decelerate fun(self: Gtk.Widget, velocity_x: number, velocity_y: number)
----@field on_button_pressed fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
----@field on_button_released fun(self: Gtk.Widget, button: number, n_press: number, x: number, y: number )
----@field on_drag_begin fun(self: Gtk.Widget, start_x: number, start_y: number)
----@field on_drag_update fun(self: Gtk.Widget, offset_x: number, offset_y: number)
----@field on_drag_end fun(self: Gtk.Widget, offset_x: number, offset_y: number)
+---@alias EventControllerFocusSignals { on_enter?: fun(widget: Gtk.Widget), on_leave?: fun(widget: Gtk.Widget) }
+---@alias EventControllerKeySignals { on_key_pressed?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_released?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_modifiers?: fun(widget: Gtk.Widget, state: Gdk.ModifierType) }
+---@alias EventControllerMotionSignals { on_enter?: fun(widget: Gtk.Widget, x: number, y: number), on_leave?: fun(widget: Gtk.Widget), on_motion?: fun(widget: Gtk.Widget, x: number, y: number) }
+---@alias EventControllerScrollSignals { on_scroll?: fun(widget: Gtk.Widget, dx: number, dy: number), on_decelerate?: fun(widget: Gtk.Widget, velocity_x: number, velocity_y: number) }
+---@alias GestureClickSignals { on_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number), on_released?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number) }
+---@alias GestureDragSignals { on_drag_begin?: fun(widget: Gtk.Widget, button: number, start_x: number, start_y: number), on_drag_update?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number), on_drag_end?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number) }
+---@alias EventControllerSignals EventControllerFocusSignals | EventControllerKeySignals | EventControllerMotionSignals | EventControllerScrollSignals | GestureClickSignals | GestureDragSignals
 
 ---@param widget Gtk.Widget | Astalified4
----@param args EventController
+---@param args EventControllerSignals
 local function setup_controllers(widget, args)
     local function pick(...)
         local tbl = {}
@@ -150,7 +141,7 @@ local function setup_controllers(widget, args)
     local on_focus_enter, on_focus_leave = pick('on_focus_enter', 'on_focus_leave')
 
     if on_focus_enter or on_focus_leave then
-        attach(Gtk.EventControllerFocus.new(), {
+        attach(Gtk.EventControllerFocus({ propagation_phase = 'CAPTURE' }), {
             enter = on_focus_enter,
             leave = on_focus_leave,
         })
@@ -161,7 +152,7 @@ local function setup_controllers(widget, args)
         pick('on_key_pressed', 'on_key_released', 'on_key_modifier')
 
     if on_key_pressed or on_key_released or on_key_modifier then
-        attach(Gtk.EventControllerKey.new(), {
+        attach(Gtk.EventControllerKey({ propagation_phase = 'CAPTURE' }), {
             ['key-pressed'] = on_key_pressed,
             ['key-released'] = on_key_released,
             modifiers = on_key_modifier,
@@ -172,25 +163,20 @@ local function setup_controllers(widget, args)
     local on_button_pressed, on_button_released = pick('on_button_pressed', 'on_button_released')
 
     if on_button_pressed or on_button_released then
-        local primary, middle, secondary =
-            Gtk.GestureClick({ button = Gdk.BUTTON_PRIMARY }),
-            Gtk.GestureClick({ button = Gdk.BUTTON_MIDDLE }),
-            Gtk.GestureClick({ button = Gdk.BUTTON_SECONDARY })
+        local gesture = Gtk.GestureClick({ button = 0, propagation_phase = 'CAPTURE' })
 
-        for _, controller in ipairs({ primary, middle, secondary }) do
-            widget:add_controller(controller)
+        widget:add_controller(gesture)
 
-            if on_button_pressed then
-                widget:hook(controller, 'pressed', function(_, ...)
-                    return on_button_pressed(widget, controller.button, ...)
-                end)
-            end
+        if on_button_pressed then
+            widget:hook(gesture, 'pressed', function(_, ...)
+                return on_button_pressed(widget, gesture:get_current_button(), ...)
+            end)
+        end
 
-            if on_button_released then
-                widget:hook(controller, 'released', function(_, ...)
-                    return on_button_released(widget, controller.button, ...)
-                end)
-            end
+        if on_button_released then
+            widget:hook(gesture, 'released', function(_, ...)
+                return on_button_released(widget, gesture:get_current_button(), ...)
+            end)
         end
     end
 
@@ -199,7 +185,7 @@ local function setup_controllers(widget, args)
         pick('on_hover_enter', 'on_hover_leave', 'on_motion')
 
     if on_hover_enter or on_hover_leave or on_motion then
-        attach(Gtk.EventControllerMotion.new(), {
+        attach(Gtk.EventControllerMotion({ propagation_phase = 'CAPTURE' }), {
             enter = on_hover_enter,
             leave = on_hover_leave,
             motion = on_motion,
@@ -210,21 +196,42 @@ local function setup_controllers(widget, args)
     local on_scroll, on_scroll_decelerate = pick('on_scroll', 'on_scroll_decelerate')
 
     if on_scroll or on_scroll_decelerate then
-        attach(Gtk.EventControllerScroll.new({ 'BOTH_AXES', 'KINETIC' }), {
-            scroll = on_scroll,
-            decelerate = on_scroll_decelerate,
-        })
+        attach(
+            Gtk.EventControllerScroll({
+                propagation_phase = 'CAPTURE',
+                flags = { 'BOTH_AXES', 'KINETIC' },
+            }),
+            {
+                scroll = on_scroll,
+                decelerate = on_scroll_decelerate,
+            }
+        )
     end
 
     local on_drag_begin, on_drag_update, on_drag_end =
         pick('on_drag_begin', 'on_drag_update', 'on_drag_end')
 
     if on_drag_begin or on_drag_update or on_drag_end then
-        attach(Gtk.GestureDrag.new(), {
-            ['drag-begin'] = on_drag_begin,
-            ['drag-update'] = on_drag_update,
-            ['drag-end'] = on_drag_end,
-        })
+        local gesture = Gtk.GestureDrag({ button = 0, propagation_phase = 'CAPTURE' })
+
+        widget:add_controller(gesture)
+
+        if on_drag_begin then
+            widget:hook(gesture, 'drag-begin', function(_, ...)
+                return on_drag_begin(widget, gesture:get_current_button(), ...)
+            end)
+        end
+        if on_drag_update then
+            widget:hook(gesture, 'drag-update', function(_, ...)
+                return on_drag_update(widget, gesture:get_current_button(), ...)
+            end)
+        end
+
+        if on_drag_end then
+            widget:hook(gesture, 'drag-end', function(_, ...)
+                return on_drag_end(widget, gesture:get_current_button(), ...)
+            end)
+        end
     end
 
     return args
@@ -249,8 +256,8 @@ function Astalified4:hook(object, signalOrCallback, callback)
             end, prop, false)
         else
             id = object['on_' .. signalOrCallback]:connect(function(_, ...)
-                callback(self, ...)
-            end)
+                return not not callback(self, ...)
+            end, nil, false)
         end
         self.on_destroy = function()
             GObject.signal_handler_disconnect(object, id)
@@ -305,7 +312,7 @@ local get_children = {}
 local no_implicit_destroy = {}
 local css_providers = {}
 
----@alias ConstructorProps Astalified4 | EventController | table<any, any>
+---@alias ConstructorProps Astalified4 | EventControllerSignals | table<any, any>
 
 ---@generic T: Gtk.Widget
 ---@param ctor T
@@ -323,7 +330,17 @@ return function(ctor, config)
         config.set_children or Astalified4.set_children,
         config.get_children or Astalified4.get_children
 
-    get_children[ctor._name] = get
+    get_children[ctor._name] = function(self)
+        local children = get(self)
+
+        for _, ch in ipairs(children) do
+            if ch.id then
+                children[ch.id] = ch
+            end
+        end
+
+        return children
+    end
 
     set_children[ctor._name] = function(self, children)
         for _, child in ipairs(get(self)) do
@@ -385,15 +402,17 @@ return function(ctor, config)
         set = function(self, css)
             local ctx = self:get_style_context()
 
-            if css_providers[self] then
-                css_providers[self] = ctx:remove_provider(css_providers[self])
+            if not css_providers[self] then
+                css_providers[self] = Gtk.CssProvider.new()
             end
 
-            if not string.find(css, '{', 1, true) or not string.find(css, '}', 1, true) then
+            -- if not string.find(css, '{', 1, true) or not string.find(css, '}', 1, true) then
+            --     css = '* { ' .. css .. ' }'
+            -- end
+
+            if not css:find('[{}]') then
                 css = '* { ' .. css .. ' }'
             end
-
-            css_providers[self] = Gtk.CssProvider.new()
 
             css_providers[self]:load_from_string(css)
 
@@ -406,7 +425,11 @@ return function(ctor, config)
         end,
     }
 
-    return function(args)
+    return function(args, ...)
+        if not args then
+            args = {}
+        end
+
         local bindings = {}
         local signal_handlers = {}
         local setup = args.setup
@@ -421,9 +444,20 @@ return function(ctor, config)
             return type(key) == 'number'
         end)))
 
+        -- local controllers = filter(args, function(value, key)
+        --     return type(key) == 'number' and Gtk.EventController:is_type_of(value)
+        -- end)
+
         local props = filter(args, function(_, key)
             return type(key) == 'string'
         end)
+
+        for key, value in pairs(props) do
+            if key:find('-') then
+                local k = key:gsub('-', '_')
+                props[k], props[key] = value, nil
+            end
+        end
 
         for key, value in pairs(props) do
             if string.sub(key, 1, 3) == 'on_' and type(value) == 'function' then
@@ -450,6 +484,8 @@ return function(ctor, config)
             end)
         elseif #children > 0 then
             new.children = children
+        elseif #{ ... } > 0 then
+            new.children = { ... }
         end
 
         for prop, binding in pairs(bindings) do
@@ -472,6 +508,10 @@ return function(ctor, config)
 
         for prop, value in pairs(props) do
             new[prop] = value
+        end
+
+        if type(args.visible) == 'boolean' then
+            new.visible = args.visible
         end
 
         if setup then
