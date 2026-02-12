@@ -25,21 +25,17 @@ ApplicationGtk3._attribute.monitors = {
 function ApplicationGtk3:add_css_provider(provider)
     Gtk.StyleContext.add_provider_for_screen(SCREEN, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
-    table.insert(self.priv.css_providers, provider)
+    self.priv.css_providers[provider] = true
 end
 
 function ApplicationGtk3:remove_css_provider(provider)
     Gtk.StyleContext.remove_provider_for_screen(SCREEN, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
-    for index, prov in ipairs(self.priv.css_providers) do
-        if prov == provider then
-            table.remove(self.priv.css_providers, index)
-        end
-    end
+    self.priv.css_providers[provider] = nil
 end
 
 function ApplicationGtk3:reset_css()
-    for _, provider in ipairs(self.priv.css_providers) do
+    for provider in pairs(self.priv.css_providers) do
         Gtk.StyleContext.remove_provider_for_screen(SCREEN, provider)
     end
 
@@ -88,7 +84,14 @@ function ApplicationGtk3:start(args)
     self:run(arg)
 end
 
+function ApplicationGtk3:_init()
+    self.priv.css_providers = {}
+    self.priv.request_handlers = {}
+end
+
 ---@type AstalLua.ApplicationGtk3
-local app = ApplicationGtk3()
+local app = ApplicationGtk3({
+    flags = { 'HANDLES_COMMAND_LINE' },
+})
 
 return app

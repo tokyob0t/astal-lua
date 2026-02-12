@@ -28,9 +28,13 @@ ApplicationGtk4._attribute.monitors = {
 }
 
 function ApplicationGtk4:add_css_provider(provider)
+    if self.priv.css_providers[provider] then
+        self:remove_css_provider(provider)
+    end
+
     Gtk.StyleContext.add_provider_for_display(DISPLAY, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
-    table.insert(self.priv.css_providers, provider)
+    self.priv.css_providers[provider] = true
 end
 
 function ApplicationGtk4:remove_css_provider(provider)
@@ -40,15 +44,11 @@ function ApplicationGtk4:remove_css_provider(provider)
         Gtk.STYLE_PROVIDER_PRIORITY_USER
     )
 
-    for index, prov in ipairs(self.priv.css_providers) do
-        if prov == provider then
-            table.remove(self.priv.css_providers, index)
-        end
-    end
+    self.priv.css_providers[provider] = nil
 end
 
 function ApplicationGtk4:reset_css()
-    for _, provider in ipairs(self.priv.css_providers) do
+    for provider in pairs(self.priv.css_providers) do
         Gtk.StyleContext.remove_provider_for_display(DISPLAY, provider)
     end
 

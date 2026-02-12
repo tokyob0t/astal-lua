@@ -11,9 +11,36 @@ local PATH = '/io/Astal/Application'
 local function printerr(fmt, ...)
     io.stderr:write(('\27[31mError:\27[0m ' .. fmt .. '\n'):format(...))
 end
+local function print(fmt, ...)
+    io.stdout:write((fmt .. '\n'):format(...))
+end
 
 ---@return string[]
 local function list_instances()
+    local conn = Gio.bus_get_sync('SESSION')
+
+    local response = conn:call_sync(
+        'org.freedesktop.DBus',
+        '/org/freedesktop/DBus',
+        'org.freedesktop.DBus',
+        'ListNames',
+        GLib.Variant('()', {}),
+        GLib.VariantType('(as)'),
+        { 'NONE' },
+        -1
+    )
+
+    local instances = {}
+    local prefix = 'io.Astal.'
+    for _, name in response.value[1]:ipairs() do
+        if name:sub(1, #prefix) == prefix then
+            table.insert(instances, name:sub(#prefix + 1))
+        end
+    end
+    return instances
+end
+
+local function list_windows()
     local conn = Gio.bus_get_sync('SESSION')
 
     local response = conn:call_sync(
@@ -50,7 +77,15 @@ end
 local function call_method(instance_name, method, args)
     local conn = Gio.bus_get_sync('SESSION')
     local name = string.format('io.Astal.%s', instance_name)
-    local vtype = GLib.VariantType(method == 'Request' and '(s)' or '()')
+    local vtype
+
+    if method == 'Request' then
+        vtype = GLib.VariantType('(s)')
+    elseif method == 'ListWindows' then
+        vtype = GLib.VariantType('(as)')
+    else
+        vtype = GLib.VariantType('()')
+    end
 
     return conn:call_sync(name, PATH, IFACE, method, args, vtype, { 'NONE' }, -1)
 end
@@ -84,6 +119,7 @@ local function main()
         :option('-i --instance', 'Instance name of the Astal.Application.', 'lua')
         :argname('<name>')
     request:option('-t --toggle-window', 'Show or hide a window.'):argname('<name>')
+    request:flag('-l --list-windows', 'List registered windows.')
     request:flag('-q --quit', 'Quit a running instance.')
     request:flag('-I --inspector', 'Open GTK inspector/debug tool.')
 
@@ -126,21 +162,36 @@ local function main()
 
         if args.inspector then
             call_method(instance_name, 'Inspector', GLib.Variant('()'))
+            return 0
         end
 
         if args.quit then
             call_method(instance_name, 'Quit', GLib.Variant('()'))
+            return 0
         end
 
         if args.toggle_window then
             call_method(instance_name, 'ToggleWindow', GLib.Variant('(s)', { args.toggle_window }))
+            return 0
+        end
+
+        if args.list_windows then
+            local variant = call_method(instance_name, 'ListWindows', GLib.Variant('()'))
+
+            local array = variant:get_child_value(0)
+
+            for _, value in array:ipairs() do
+                print(value)
+            end
+
+            return 0
         end
 
         if args.args then
             local variant =
                 call_method(instance_name, 'Request', GLib.Variant('(as)', { args.args }))
             if variant then
-                print(variant.value[1])
+                print('%s\n', variant.value[1])
             else
                 printerr("Instance '%s' did't give a response", instance_name)
                 return 1
