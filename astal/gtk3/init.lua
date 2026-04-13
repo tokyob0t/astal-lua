@@ -1,10 +1,11 @@
-local lgi = require("lgi")
+local lgi = require('lgi')
 
 return {
-    astalify = require("astal.gtk3.astalify"),
-    Widget = require("astal.gtk3.widget"),
+    astalify = require('astal.gtk3.astalify'),
+    Widget = require('astal.gtk3.widget'),
+    App = require('astal.gtk3.app'),
 
-    Gtk = lgi.require("Gtk", "3.0"),
-    Gdk = lgi.require("Gdk", "3.0"),
-    Astal = lgi.require("Astal", "3.0"),
+    Gtk = lgi.require('Gtk', '3.0'),
+    Gdk = lgi.require('Gdk', '3.0'),
+    Astal = lgi.require('Astal', '3.0'),
 }
