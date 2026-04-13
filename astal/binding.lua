@@ -1,9 +1,10 @@
 local lgi = require('lgi')
 local GObject = lgi.require('GObject', '2.0')
+local Gio = lgi.require('Gio', '2.0')
 
 ---@class AstalLuaBinding: table
----@field private emitter table | AstalLuaVariable | GObject.Object
----@field private property? string
+---@field emitter table | AstalLuaVariable | GObject.Object
+---@field property? string
 ---@field private transform_fn function
 ---@field private __index AstalLuaBinding
 ---@overload fun(emitter: GObject.Object, property: string): AstalLuaBinding
@@ -42,7 +43,9 @@ end
 
 ---@return any
 function Binding:get()
-    if self.property ~= nil and GObject.Object:is_type_of(self.emitter) then
+    if self.property ~= nil and Gio.Settings:is_type_of(self.emitter) then
+        return self.transform_fn(self.emitter:get_value(self.property))
+    elseif self.property ~= nil and GObject.Object:is_type_of(self.emitter) then
         return self.transform_fn(self.emitter[self.property])
     elseif type(self.emitter.get) == 'function' then
         return self.transform_fn(self.emitter:get())
@@ -63,7 +66,17 @@ end
 ---@param callback fun(value: any)
 ---@return function
 function Binding:subscribe(callback)
-    if self.property ~= nil and GObject.Object:is_type_of(self.emitter) then
+    if self.property ~= nil and Gio.Settings:is_type_of(self.emitter) then
+        local id = self.emitter.on_changed:connect(function(_, k)
+            if k == self.property then
+                callback(self:get())
+            end
+        end)
+
+        return function()
+            GObject.signal_handler_disconnect(self.emitter, id)
+        end
+    elseif self.property ~= nil and GObject.Object:is_type_of(self.emitter) then
         local id = self.emitter.on_notify:connect(function()
             callback(self:get())
         end, self.property, false)

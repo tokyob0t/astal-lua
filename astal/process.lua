@@ -2,6 +2,25 @@ local lgi = require('lgi')
 local Gio = lgi.require('Gio')
 local GLib = lgi.require('GLib')
 
+
+-- stylua: ignore start
+---@enum (key) UNIX_SIGNALS
+local UNIX_SIGNALS = {
+    SIGHUP = 1, SIGINT = 2, SIGQUIT = 3,
+    SIGILL = 4, SIGTRAP = 5, SIGABRT = 6,
+    SIGIOT = 6, SIGBUS = 7, SIGFPE = 8,
+    SIGKILL = 9, SIGUSR1 = 10, SIGSEGV = 11,
+    SIGUSR2 = 12, SIGPIPE = 13, SIGALRM = 14,
+    SIGTERM = 15, SIGSTKFLT = 16, SIGCHLD = 17,
+    SIGCLD = 17, SIGCONT = 18, SIGSTOP = 19,
+    SIGTSTP = 20, SIGTTIN = 21, SIGTTOU = 22,
+    SIGURG = 23, SIGXCPU = 24, SIGXFSZ = 25,
+    SIGVTALRM = 26, SIGPROF = 27, SIGWINCH = 28,
+    SIGIO = 29, SIGPOLL = 29, SIGPWR = 30,
+    SIGSYS = 31,
+}
+-- stylua: ignore end
+
 ---@generic F: function
 ---@param fn F
 ---@return F
@@ -105,6 +124,34 @@ end)
 ---@param ... integer | '*a' | '*l'
 Process.async_read = function(self, ...) end --- ToDo
 
+Process.async_write = function(self, contents)
+    if not self.stdin_stream then
+        self.stdin_stream = Gio.DataOutputStream.new(self.subprocess:get_stdin_pipe())
+    end
+
+    local pos = 1
+
+    while pos <= #contents do
+        local wrote, err = self.stdin_stream:async_write_bytes(GLib.Bytes(contents:sub(pos)))
+        assert(wrote >= 0, err)
+        pos = pos + wrote
+    end
+
+    return self.stdin_stream:async_close()
+end
+
+Process.write = await(function(self, contents)
+    return self:async_write(contents)
+end)
+
+Process.write_async = async(function(self, contents, callback)
+    local ok = self:async_write(contents)
+
+    if callback then
+        callback(ok)
+    end
+end)
+
 ---@return boolean
 Process.async_wait = function(self)
     return self.subprocess:async_wait()
@@ -120,8 +167,13 @@ Process.wait_async = async(function(self, callback)
     callback(self:async_wait())
 end)
 
+---@param signal UNIX_SIGNALS
+function Process:signal(signal)
+    self.subprocess:send_signal(UNIX_SIGNALS[signal])
+end
+
 function Process:quit()
-    self.subprocess:force_exit()
+    self:signal('SIGKILL')
 end
 
 local M = {}
