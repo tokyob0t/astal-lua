@@ -453,10 +453,8 @@ return function(ctor, config)
         end)
 
         for key, value in pairs(props) do
-            if key:find('-') then
-                local k = key:gsub('-', '_')
-                props[k], props[key] = value, nil
-            end
+            args[key] = nil
+            args[key:gsub('-', '_')] = value
         end
 
         for key, value in pairs(props) do
