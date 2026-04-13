@@ -12,6 +12,8 @@ function M.interval(interval, fn)
         return true
     end)
 
+    M.idle(fn)
+
     return function()
         GLib.source_remove(id)
     end

@@ -17,6 +17,10 @@ local IFACE_INFO = Gio.DBusInterfaceInfo({
             in_args = { Gio.DBusArgInfo({ name = 'name', signature = 's' }) },
         }),
         Gio.DBusMethodInfo({
+            name = 'ListWindows',
+            out_args = { Gio.DBusArgInfo({ name = 'out', signature = 'as' }) },
+        }),
+        Gio.DBusMethodInfo({
             name = 'Request',
             in_args = { Gio.DBusArgInfo({ name = 'args', signature = 'as' }) },
             out_args = { Gio.DBusArgInfo({ name = 'out', signature = 's' }) },
@@ -37,6 +41,52 @@ Application._attribute.instance_name = {
     end,
 }
 
+---@param method string
+---@param variant GLib.Variant | string[]
+---@param response fun(signature?: string, ... )
+function Application:handle_bus_call(method, variant, response)
+    if method == 'ToggleWindow' then
+        return response(), self:toggle_window(variant[1])
+    end
+    if method == 'ListWindows' then
+        local tbl = {}
+
+        for _, win in ipairs(self:get_windows()) do
+            table.insert(tbl, string.format('%s%s', win.visible and '*' or '', win.name))
+        end
+
+        return response('(as)', tbl)
+    end
+
+    if method == 'Inspector' then
+        return response(), self:inspector()
+    end
+
+    if method == 'Quit' then
+        return response(), self:quit()
+    end
+
+    if method == 'Request' then
+        local request_args = {}
+
+        local array = variant.value[1]
+
+        for _, value in array:ipairs() do
+            table.insert(request_args, value)
+        end
+
+        if #self.priv.request_handlers == 0 then
+            return response('(s)', "This app doesn't provide a request handler")
+        end
+
+        for i = #self.priv.request_handlers, 1, -1 do
+            self.priv.request_handlers[i](request_args, function(r)
+                response('(s)', tostring(r))
+            end)
+        end
+    end
+end
+
 ---@private
 function Application:register_dbus()
     ---@type Gio.DBusConnection | { register_object: fun(self: Gio.DBusConnection, object_path: string, iface_info: Gio.DBusInterfaceInfo, skibidi_toilet: GObject.Closure ) }
@@ -51,42 +101,13 @@ function Application:register_dbus()
             ---@type string, GLib.Variant, Gio.DBusMethodInvocation
             local method, variant, callback = table.unpack(args, 5, 7)
 
-            if method == 'ToggleWindow' then
-                self:toggle_window(variant[1])
-                return callback:return_value()
-            end
+            self:handle_bus_call(method, variant, function(signature, ...)
+                if signature then
+                    return callback:return_value(GLib.Variant(signature, { ... }))
+                end
 
-            if method == 'Inspector' then
-                self:inspector()
-                return callback:return_value()
-            end
-
-            if method == 'Quit' then
                 callback:return_value()
-                return self:quit()
-            end
-
-            if method == 'Request' then
-                local request_args = {}
-
-                local array = variant.value[1]
-
-                for _, value in array:ipairs() do
-                    table.insert(request_args, value)
-                end
-
-                if #self.priv.request_handlers == 0 then
-                    return callback:return_value(
-                        GLib.Variant('(s)', { "This app doesn't provide a request handler" })
-                    )
-                end
-
-                for i = #self.priv.request_handlers, 1, -1 do
-                    self.priv.request_handlers[i](request_args, function(r)
-                        callback:return_value(GLib.Variant('(s)', { tostring(r) }))
-                    end)
-                end
-            end
+            end)
         end)
     )
 end
@@ -158,16 +179,10 @@ function Application:add_request_handler(fn)
     table.insert(self.priv.request_handlers, fn)
 end
 
-function Application:_init()
-    self.flags = { 'HANDLES_COMMAND_LINE', 'IS_SERVICE' }
-    self.priv.css_providers = {}
-    self.priv.request_handlers = {}
-end
-
 ---@class ApplicationStartArgs
 ---@field instance_name? string
----@field main function
----@field request_handler? fun(args: string[], response: fun(message: string, ...: string))
+---@field main fun(args: string[]): any
+---@field request_handler? fun(args: string[], response: fun(message: string, ...: string)): any
 ---@field hold? boolean
 ---@field icons? string
 ---@field icon_theme? string
@@ -194,17 +209,31 @@ function Application:start(args)
         self:add_icons(args.icons)
     end
 
-    self.on_startup = function()
-        if args.main then
-            args.main()
-        end
-
+    self.on_activate = function()
         self:register()
         self:register_dbus()
 
         if args.hold then
             self:hold()
         end
+    end
+
+    self.on_command_line = function(_, command_line)
+        local _args = command_line:get_arguments()
+
+        if not command_line.is_remote then
+            args.main(_args)
+            self:activate()
+        else
+            for i = #self.priv.request_handlers, 1, -1 do
+                self.priv.request_handlers[i](_args, function(r)
+                    command_line:print_literal(tostring(r) .. '\n')
+                    command_line:done()
+                end)
+            end
+        end
+
+        return 0
     end
 
     self:quit(self:run({ table.unpack(arg, 0, #arg) }))

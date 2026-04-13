@@ -21,8 +21,8 @@ local function AppButton(app)
 	return Widget.Button({
 		class_name = "AppButton",
 		on_clicked = function()
-			hide()
 			app:launch()
+			hide()
 		end,
 		Widget.Box({
 			Widget.Icon({ icon = app.icon_name }),

@@ -52,9 +52,9 @@ return function()
 	local apps = Apps.Apps()
 
 	local text = Variable.new("")
-	local list = bind(text):as(
-		function(t) return slice(apps:fuzzy_query(t), 1, MAX_ITEMS) end
-	)
+	local list = bind(text)
+		:as(function(t) return apps:fuzzy_query(t) end)
+		:as(function(l) return slice(l, 1, MAX_ITEMS) end)
 
 	local on_enter = function()
 		local found = apps:fuzzy_query(text:get())[1]

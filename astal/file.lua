@@ -1,4 +1,5 @@
 local lgi = require('lgi')
+---@type Gio
 local Gio = lgi.require('Gio')
 ---@type GLib
 local GLib = lgi.require('GLib')
@@ -33,22 +34,12 @@ M.async_read_file = function(path)
 
     local file = Gio.File.new_for_path(path)
 
-    local info = assert(file:async_query_info('standard::size', 'NONE'))
-    local stream = assert(file:async_read())
-
-    local read_buffers = {}
-
-    local remaining = info:get_size()
-
-    while remaining > 0 do
-        local buffer = assert(stream:async_read_bytes(remaining))
-        table.insert(read_buffers, buffer.data)
-        remaining = remaining - #buffer
-    end
-
+    local info = file:async_query_info('standard::size', 'NONE')
+    local stream = file:async_read()
+    local bytes = stream:async_read_bytes(info:get_size())
     stream:async_close()
 
-    return table.concat(read_buffers)
+    return bytes:get_data(bytes:get_size())
 end
 
 ---@param path string
