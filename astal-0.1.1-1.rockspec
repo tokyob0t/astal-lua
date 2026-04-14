@@ -1,6 +1,6 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = '0.1-1'
+version = '0.1.1-1'
 
 source = {
     url = 'git+https://github.com/tokyob0t/astal-lua.git',
@@ -27,7 +27,7 @@ build = {
         ['astal.time'] = 'astal/time.lua',
         ['astal.variable'] = 'astal/variable.lua',
         ['astal.application'] = 'astal/application.lua',
-        --- Gtk4
+        --- Gtk3
         ['astal.gtk3.init'] = 'astal/gtk3/init.lua',
         ['astal.gtk3.astalify'] = 'astal/gtk3/astalify.lua',
         ['astal.gtk3.widget'] = 'astal/gtk3/widget.lua',
