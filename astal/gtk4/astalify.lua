@@ -452,9 +452,13 @@ return function(ctor, config)
             return type(key) == 'string'
         end)
 
-        for key, value in pairs(props) do
-            args[key] = nil
-            args[key:gsub('-', '_')] = value
+        do
+            local _props = {}
+            -- normalize props just in case
+            for key, value in pairs(props) do
+                _props[key:gsub('-', '_')] = value
+            end
+            props = _props
         end
 
         for key, value in pairs(props) do
