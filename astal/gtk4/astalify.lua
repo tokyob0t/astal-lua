@@ -475,7 +475,7 @@ return function(ctor, config)
             end
         end
 
-        local new = ctor()
+        local new = ctor(props)
 
         setup_controllers(new, signal_handlers)
 
@@ -508,9 +508,6 @@ return function(ctor, config)
             new:hook(new, signal, callback)
         end
 
-        for prop, value in pairs(props) do
-            new[prop] = value
-        end
 
         if type(args.visible) == 'boolean' then
             new.visible = args.visible
