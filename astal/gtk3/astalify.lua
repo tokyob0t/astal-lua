@@ -216,7 +216,7 @@ return function(ctor)
         end
 
         -- construct, attach bindings, add children
-        local widget = ctor()
+        local widget = ctor(props)
 
         if Binding:is_type_of(children) then
             set_children(widget, children:get())
@@ -233,10 +233,6 @@ return function(ctor)
             widget.on_destroy = binding:subscribe(function(v)
                 widget[prop] = v
             end)
-        end
-
-        for prop, value in pairs(props) do
-            widget[prop] = value
         end
 
         if type(setup) == 'function' then
