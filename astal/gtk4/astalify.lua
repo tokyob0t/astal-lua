@@ -1,283 +1,76 @@
 local lgi = require('lgi')
----@type Gtk
 local Gtk = lgi.require('Gtk', '4.0')
----@type GObject
-local GObject = lgi.require('GObject')
+local GObject = lgi.require('GObject', '2.0')
 
----@type Gdk
-local Gdk = lgi.require('Gdk')
+local construct = require('astal._construct')
 
-local Variable = require('astal.variable')
-local bind = require('astal.binding')
+local config = require('astal._props')
+local utils = require('astal._utils')
+
 local dummy_builder = Gtk.Builder.new()
 
-local function filter(tbl, fn)
-    local copy = {}
-    for key, value in pairs(tbl) do
-        if fn(value, key) then
-            if type(key) == 'number' then
-                table.insert(copy, value)
-            else
-                copy[key] = value
+local set_children = {}
+local get_children = {}
+local css_providers = {}
+local types = setmetatable({}, { __mode = 'k' })
+
+local env = config({
+    -- must include
+    set_children = function(self, children)
+        for _, ch in ipairs(get_children[self._name](self)) do
+            ch:unparent()
+
+            if not utils.includes(children, ch) and not ch.no_implicit_destroy then
+                ch:run_dispose()
             end
         end
-    end
-    return copy
-end
 
-local function map(tbl, fn)
-    local copy = {}
-    for key, value in pairs(tbl) do
-        copy[key] = fn(value)
-    end
-    return copy
-end
+        set_children[self._name](self, utils.ensure_widgets(children))
+    end,
+    get_children = function(self)
+        return get_children[self._name](self)
+    end,
+    set_css = function(self, css)
+        local ctx = self:get_style_context()
 
-local function flatten(tbl)
-    local copy = {}
-    for _, value in pairs(tbl) do
-        if type(value) == 'table' and getmetatable(value) == nil then
-            for _, inner in pairs(flatten(value)) do
-                table.insert(copy, inner)
-            end
+        if not css_providers[self] then
+            css_providers[self] = Gtk.CssProvider.new()
+        end
+
+        if not css:find('[{}]') then
+            css = '* { ' .. css .. ' }'
+        end
+
+        css_providers[self]:load_from_string(css)
+
+        ctx:add_provider(css_providers[self], Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    end,
+    get_css = function(self)
+        if css_providers[self] then
+            return css_providers[self]:to_string()
+        end
+        return ''
+    end,
+    toggle_css_class = function(self, css_class, condition)
+        if condition then
+            self:add_css_class(css_class)
         else
-            table.insert(copy, value)
+            self:remove_css_class(css_class)
         end
-    end
-    return copy
-end
+    end,
+})
 
-local function includes(tbl, elem)
-    for _, value in pairs(tbl) do
-        if value == elem then
-            return true
-        end
-    end
-    return false
-end
-
-local function merge_bindings(array)
-    local function get_values(...)
-        local args = { ... }
-        local i = 0
-        return map(array, function(value)
-            if bind:is_type_of(value) then
-                i = i + 1
-                return args[i]
-            else
-                return value
-            end
-        end)
-    end
-
-    local bindings = filter(array, function(v)
-        return bind:is_type_of(v)
-    end)
-
-    if #bindings == 0 then
-        return array
-    end
-
-    if #bindings == 1 then
-        return bindings[1]:as(get_values)
-    end
-
-    return bind(Variable.derive(bindings, get_values))
-end
-
-local function ensure_widgets(children)
-    return map(
-        filter(flatten(children), function(item)
-            return not not item
-        end),
-        function(item)
-            if Gtk.Widget:is_type_of(item) then
-                return item
-            end
-            return Gtk.Label({
-                visible = true,
-                label = tostring(item),
-            })
-        end
-    )
-end
-
----@alias EventControllerFocusSignals { on_enter?: fun(widget: Gtk.Widget), on_leave?: fun(widget: Gtk.Widget) }
----@alias EventControllerKeySignals { on_key_pressed?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_released?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_modifiers?: fun(widget: Gtk.Widget, state: Gdk.ModifierType) }
----@alias EventControllerMotionSignals { on_enter?: fun(widget: Gtk.Widget, x: number, y: number), on_leave?: fun(widget: Gtk.Widget), on_motion?: fun(widget: Gtk.Widget, x: number, y: number) }
----@alias EventControllerScrollSignals { on_scroll?: fun(widget: Gtk.Widget, dx: number, dy: number), on_decelerate?: fun(widget: Gtk.Widget, velocity_x: number, velocity_y: number) }
----@alias GestureClickSignals { on_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number), on_released?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number) }
----@alias GestureDragSignals { on_drag_begin?: fun(widget: Gtk.Widget, button: number, start_x: number, start_y: number), on_drag_update?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number), on_drag_end?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number) }
----@alias EventControllerSignals EventControllerFocusSignals | EventControllerKeySignals | EventControllerMotionSignals | EventControllerScrollSignals | GestureClickSignals | GestureDragSignals
-
----@param widget Gtk.Widget | Astalified4
----@param args EventControllerSignals
-local function setup_controllers(widget, args)
-    local function pick(...)
-        local tbl = {}
-        for _, value in ipairs({ ... }) do
-            if args[value] then
-                table.insert(tbl, args[value])
-                args[value] = nil
-            else
-                table.insert(tbl, false)
-            end
-        end
-        return table.unpack(tbl)
-    end
-
-    local function attach(controller, signals)
-        widget:add_controller(controller)
-        for signal, handler in pairs(signals) do
-            if handler then
-                widget:hook(controller, signal, function(_, ...)
-                    return handler(widget, ...)
-                end)
-            end
-        end
-    end
-
-    -- Focus
-    local on_focus_enter, on_focus_leave = pick('on_focus_enter', 'on_focus_leave')
-
-    if on_focus_enter or on_focus_leave then
-        attach(Gtk.EventControllerFocus({ propagation_phase = 'CAPTURE' }), {
-            enter = on_focus_enter,
-            leave = on_focus_leave,
-        })
-    end
-
-    -- Keys
-    local on_key_pressed, on_key_released, on_key_modifier =
-        pick('on_key_pressed', 'on_key_released', 'on_key_modifier')
-
-    if on_key_pressed or on_key_released or on_key_modifier then
-        attach(Gtk.EventControllerKey({ propagation_phase = 'CAPTURE' }), {
-            ['key-pressed'] = on_key_pressed,
-            ['key-released'] = on_key_released,
-            modifiers = on_key_modifier,
-        })
-    end
-
-    -- Legacy mouse / generic events
-    local on_button_pressed, on_button_released = pick('on_button_pressed', 'on_button_released')
-
-    if on_button_pressed or on_button_released then
-        local gesture = Gtk.GestureClick({ button = 0, propagation_phase = 'CAPTURE' })
-
-        widget:add_controller(gesture)
-
-        if on_button_pressed then
-            widget:hook(gesture, 'pressed', function(_, ...)
-                return on_button_pressed(widget, gesture:get_current_button(), ...)
-            end)
-        end
-
-        if on_button_released then
-            widget:hook(gesture, 'released', function(_, ...)
-                return on_button_released(widget, gesture:get_current_button(), ...)
-            end)
-        end
-    end
-
-    -- Hover / Motion
-    local on_hover_enter, on_hover_leave, on_motion =
-        pick('on_hover_enter', 'on_hover_leave', 'on_motion')
-
-    if on_hover_enter or on_hover_leave or on_motion then
-        attach(Gtk.EventControllerMotion({ propagation_phase = 'CAPTURE' }), {
-            enter = on_hover_enter,
-            leave = on_hover_leave,
-            motion = on_motion,
-        })
-    end
-
-    -- Scroll
-    local on_scroll, on_scroll_decelerate = pick('on_scroll', 'on_scroll_decelerate')
-
-    if on_scroll or on_scroll_decelerate then
-        attach(
-            Gtk.EventControllerScroll({
-                propagation_phase = 'CAPTURE',
-                flags = { 'BOTH_AXES', 'KINETIC' },
-            }),
-            {
-                scroll = on_scroll,
-                decelerate = on_scroll_decelerate,
-            }
-        )
-    end
-
-    local on_drag_begin, on_drag_update, on_drag_end =
-        pick('on_drag_begin', 'on_drag_update', 'on_drag_end')
-
-    if on_drag_begin or on_drag_update or on_drag_end then
-        local gesture = Gtk.GestureDrag({ button = 0, propagation_phase = 'CAPTURE' })
-
-        widget:add_controller(gesture)
-
-        if on_drag_begin then
-            widget:hook(gesture, 'drag-begin', function(_, ...)
-                return on_drag_begin(widget, gesture:get_current_button(), ...)
-            end)
-        end
-        if on_drag_update then
-            widget:hook(gesture, 'drag-update', function(_, ...)
-                return on_drag_update(widget, gesture:get_current_button(), ...)
-            end)
-        end
-
-        if on_drag_end then
-            widget:hook(gesture, 'drag-end', function(_, ...)
-                return on_drag_end(widget, gesture:get_current_button(), ...)
-            end)
-        end
-    end
-
-    return args
-end
-
----@class Astalified4: Gtk.Widget
----@field children Gtk.Widget[]
----@field no_implicit_destroy boolean
----@field css string
----@field hook fun(self, object: Connectable, signal: string, callback: function) | fun(self, object: Connectable, callback: function)
----@field get_child? fun(self): Gtk.Widget
----@field get_first_child? fun(self): Gtk.Widget
-local Astalified4 = {}
-
-function Astalified4:hook(object, signalOrCallback, callback)
-    if GObject.Object:is_type_of(object) and type(signalOrCallback) == 'string' then
-        local id
-        if string.sub(signalOrCallback, 1, 8) == 'notify::' then
-            local prop = string.gsub(signalOrCallback, 'notify::', '')
-            id = object.on_notify:connect(function()
-                callback(self, object[prop])
-            end, prop, false)
+local do_set_children = function(self, children)
+    for _, ch in ipairs(children) do
+        if types[ch] then
+            self:do_add_child(dummy_builder, ch, types[ch])
         else
-            id = object['on_' .. signalOrCallback]:connect(function(_, ...)
-                return not not callback(self, ...)
-            end, nil, false)
+            self:do_add_child(dummy_builder, ch)
         end
-        self.on_destroy = function()
-            GObject.signal_handler_disconnect(object, id)
-        end
-    elseif type(object.subscribe) == 'function' then
-        self.on_destroy = object:subscribe(function(...)
-            signalOrCallback(self, ...)
-        end)
-    else
-        error('can not hook: not gobject+signal or subscribable')
     end
 end
 
-function Astalified4:set_children(children)
-    for _, child in ipairs(children) do
-        self:do_add_child(dummy_builder, child)
-    end
-end
-
-function Astalified4:get_children()
+local do_get_children = function(self)
     local ok = pcall(function()
         return self.get_child ~= nil
     end)
@@ -297,224 +90,41 @@ function Astalified4:get_children()
     return children
 end
 
----@param css_class string
----@param condition? boolean
-function Astalified4:toggle_css_class(css_class, condition)
-    if condition then
-        self:add_css_class(css_class)
-    else
-        self:remove_css_class(css_class)
-    end
-end
-
-local set_children = {}
-local get_children = {}
-local no_implicit_destroy = {}
-local css_providers = {}
-
----@alias ConstructorProps Astalified4 | EventControllerSignals | table<any, any>
-
 ---@generic T: Gtk.Widget
 ---@param ctor T
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
----@return fun(args?: T | ConstructorProps | { setup: fun(self: T | Astalified4) }): T | Astalified4
+---@return fun(args?: T | ConstructorProps | { setup: fun(self: T | ConstructorProps) }): T | ConstructorProps
 return function(ctor, config)
-    ---@diagnostic disable:undefined-field
-    ---@diagnostic disable:inject-field
-
     if not config then
         config = {}
     end
 
-    local set, get =
-        config.set_children or Astalified4.set_children,
-        config.get_children or Astalified4.get_children
+    get_children[ctor._name] = config.get_children or do_get_children
+    set_children[ctor._name] = config.set_children or do_set_children
 
-    get_children[ctor._name] = function(self)
-        local children = get(self)
+    for key, value in pairs(env) do
+        ctor[key] = value
 
-        for _, ch in ipairs(children) do
-            if ch.id then
-                children[ch.id] = ch
+        local prefix, propname = key:match('^([gs]et)_(.+)$')
+
+        if prefix then
+            if not ctor._attribute[propname] then
+                ctor._attribute[propname] = {}
             end
+
+            ctor._attribute[propname][prefix] = value
         end
-
-        return children
     end
-
-    set_children[ctor._name] = function(self, children)
-        for _, child in ipairs(get(self)) do
-            if Gtk.Widget:is_type_of(child) then
-                child:unparent()
-
-                if not includes(children, child) and not child.no_implicit_destroy then
-                    child:run_dispose()
-                end
-            end
-        end
-
-        set(self, ensure_widgets(children))
-    end
-
-    ctor.hook = Astalified4.hook
-    ctor.toggle_css_class = Astalified4.toggle_css_class
-
-    ctor.get_children = function(self)
-        return self.children
-    end
-
-    ctor.set_children = function(self, children)
-        self.children = children
-    end
-
-    ctor.get_css = function(self)
-        return self.css
-    end
-
-    ctor.set_css = function(self, css)
-        self.css = css
-    end
-
-    ctor._attribute.children = {
-        set = function(self, children)
-            set_children[self._name](self, children)
-        end,
-        get = function(self)
-            return get_children[self._name](self)
-        end,
-    }
-
-    ctor._attribute.no_implicit_destroy = {
-        get = function(self)
-            return no_implicit_destroy[self] or false
-        end,
-        set = function(self, v)
-            if no_implicit_destroy[self] == nil then
-                self.on_destroy = function()
-                    no_implicit_destroy[self] = nil
-                end
-            end
-            no_implicit_destroy[self] = v
-        end,
-    }
-
-    ctor._attribute.css = {
-        set = function(self, css)
-            local ctx = self:get_style_context()
-
-            if not css_providers[self] then
-                css_providers[self] = Gtk.CssProvider.new()
-            end
-
-            -- if not string.find(css, '{', 1, true) or not string.find(css, '}', 1, true) then
-            --     css = '* { ' .. css .. ' }'
-            -- end
-
-            if not css:find('[{}]') then
-                css = '* { ' .. css .. ' }'
-            end
-
-            css_providers[self]:load_from_string(css)
-
-            ctx:add_provider(css_providers[self], Gtk.STYLE_PROVIDER_PRIORITY_USER)
-        end,
-        get = function(self)
-            if css_providers[self] then
-                return css_providers[self]:to_string()
-            end
-        end,
-    }
 
     return function(args, ...)
-        if not args then
-            args = {}
-        end
+        local _type = args.type
 
-        local bindings = {}
-        local signal_handlers = {}
-        local setup = args.setup
+        args.type = nil
 
-        if type(args.visible) == 'nil' then
-            args.visible = true
-        end
+        local new = construct(ctor, args, ...)
 
-        args.setup = nil
-
-        local children = merge_bindings(flatten(filter(args, function(_, key)
-            return type(key) == 'number'
-        end)))
-
-        -- local controllers = filter(args, function(value, key)
-        --     return type(key) == 'number' and Gtk.EventController:is_type_of(value)
-        -- end)
-
-        local props = filter(args, function(_, key)
-            return type(key) == 'string'
-        end)
-
-        do
-            local _props = {}
-            -- normalize props just in case
-            for key, value in pairs(props) do
-                _props[key:gsub('-', '_')] = value
-            end
-            props = _props
-        end
-
-        for key, value in pairs(props) do
-            if string.sub(key, 1, 3) == 'on_' and type(value) == 'function' then
-                signal_handlers[key] = value
-                props[key] = nil
-            end
-        end
-
-        for key, value in pairs(props) do
-            if bind:is_type_of(value) then
-                bindings[key] = value
-                props[key] = value:get()
-            end
-        end
-
-        local new = ctor(props)
-
-        setup_controllers(new, signal_handlers)
-
-        if bind:is_type_of(children) then
-            new.children = children:get()
-            new.on_destroy = children:subscribe(function(value)
-                new.children = value
-            end)
-        elseif #children > 0 then
-            new.children = children
-        elseif #{ ... } > 0 then
-            new.children = { ... }
-        end
-
-        for prop, binding in pairs(bindings) do
-            new.on_destroy = binding:subscribe(function(v)
-                new[prop] = v
-            end)
-        end
-
-        for signal, callback in pairs(signal_handlers) do
-            signal = signal:sub(4)
-
-            if string.sub(signal, 1, 7) == 'notify_' then
-                signal = 'notify::' .. string.sub(signal, 8)
-            end
-
-            signal = signal:gsub('_', '-')
-
-            new:hook(new, signal, callback)
-        end
-
-
-        if type(args.visible) == 'boolean' then
-            new.visible = args.visible
-        end
-
-        if setup then
-            setup(new)
+        if _type then
+            types[new] = _type
         end
 
         return new

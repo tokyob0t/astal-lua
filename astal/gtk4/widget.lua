@@ -7,17 +7,7 @@ local Astal = lgi.require('Astal', '4.0')
 local astalify = require('astal.gtk4.astalify')
 
 ---@diagnostic disable-next-line
-Gtk.Widget._attribute.action_group = {
-    set = function(self, ag)
-        self:insert_action_group(ag[1], ag[2])
-    end,
-}
-
----@type Gtk.Box | { vertical: boolean }
-local Box = Gtk.Box
-
----@diagnostic disable-next-line
-Box._attribute.vertical = {
+Gtk.Widget._attribute.vertical = {
     get = function(self)
         return self.orientation == 'VERTICAL'
     end,
@@ -49,16 +39,6 @@ DrawingArea._attribute.draw_func = {
     end,
 }
 
--- ---@type Gtk.Image | { pixbuf: GdkPixbuf.Pixbuf }
--- local Image = Gtk.Image
-
--- ---@diagnostic disable-next-line
--- Image._attribute.pixbuf = {
---     set = function(self, pixbuf)
---         self:set_from_pixbuf(pixbuf)
---     end,
--- }
-
 return {
     astalify = astalify,
 
@@ -66,11 +46,11 @@ return {
 
     Window = astalify(Astal.Window),
 
-    Box = astalify(Box, {
+    Box = astalify(Gtk.Box, {
         set_children = function(self, children)
-            for _, ch in ipairs(self:get_children()) do
-                self:remove(ch)
-            end
+            -- for _, ch in ipairs(self:get_children()) do
+            --     self:remove(ch)
+            -- end
 
             for _, ch in ipairs(children) do
                 self:append(ch)
@@ -104,7 +84,7 @@ return {
 
     Label = astalify(Gtk.Label, {
         set_children = function(self, children)
-            self.label = tostring(children)
+            self.label = tostring(children[1])
         end,
         get_children = function()
             return {}

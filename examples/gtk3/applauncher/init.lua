@@ -1,4 +1,4 @@
-require("astal.gtk3")
+package.preload.lgi = function() return require("LuaGObject") end
 local astal = require("astal")
 
 local AppLauncher = require("widget.Applauncher")
