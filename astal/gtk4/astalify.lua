@@ -1,5 +1,7 @@
 local lgi = require('lgi')
+---@type Gtk
 local Gtk = lgi.require('Gtk', '4.0')
+---@type GObject
 local GObject = lgi.require('GObject', '2.0')
 
 local construct = require('astal._construct')
@@ -93,7 +95,7 @@ end
 ---@generic T: Gtk.Widget
 ---@param ctor T
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
----@return fun(args?: T | ConstructorProps | { setup: fun(self: T | ConstructorProps) }): T | ConstructorProps
+---@return fun(args?: T | Astalified | EventControllerSignals | { setup: fun(self: T | Astalified ) }): T | Astalified
 return function(ctor, config)
     if not config then
         config = {}
