@@ -1,5 +1,8 @@
 local lgi = require('lgi')
+---@type Gio
 local Gio = lgi.require('Gio')
+
+---@type GLib
 local GLib = lgi.require('GLib')
 
 
@@ -78,98 +81,50 @@ Process.new = function(command, mode)
     return p
 end
 
-Process.async_lines = function(self)
+function Process:lines_async(callback)
     if not self.stdout_stream then
         self.stdout_stream = Gio.DataInputStream.new(self.subprocess:get_stdout_pipe())
     end
 
-    return function()
+    local iter = await(function()
         return self.stdout_stream:async_read_line()
+    end)
+
+    for err in iter do
+        callback(err)
     end
 end
 
-Process.lines = function(self)
-    return await(self:async_lines())
-end
-
----@param callback fun(line: string)
-Process.lines_async = async(function(self, callback)
-    for line in self:async_lines() do
-        callback(line)
-    end
-end)
-
-Process.async_errors = function(self)
+---@param callback fun(err: string)
+function Process:errors_async(callback)
     if not self.stderr_stream then
         self.stderr_stream = Gio.DataInputStream.new(self.subprocess:get_stderr_pipe())
     end
 
-    return function()
+    local iter = await(function()
         return self.stderr_stream:async_read_line()
-    end
-end
+    end)
 
-Process.errors = function(self)
-    return await(self:async_errors())
-end
-
----@param callback fun(err: string)
-Process.errors_async = async(function(self, callback)
-    for err in self:async_errors() do
+    for err in iter do
         callback(err)
     end
-end)
-
----@param self AstalLuaProcess
----@param ... integer | '*a' | '*l'
-Process.async_read = function(self, ...) end --- ToDo
-
-Process.async_write = function(self, contents)
-    if not self.stdin_stream then
-        self.stdin_stream = Gio.DataOutputStream.new(self.subprocess:get_stdin_pipe())
-    end
-
-    local pos = 1
-
-    while pos <= #contents do
-        local wrote, err = self.stdin_stream:async_write_bytes(GLib.Bytes(contents:sub(pos)))
-        assert(wrote >= 0, err)
-        pos = pos + wrote
-    end
-
-    return self.stdin_stream:async_close()
 end
-
-Process.write = await(function(self, contents)
-    return self:async_write(contents)
-end)
-
-Process.write_async = async(function(self, contents, callback)
-    local ok = self:async_write(contents)
-
-    if callback then
-        callback(ok)
-    end
-end)
-
----@return boolean
-Process.async_wait = function(self)
-    return self.subprocess:async_wait()
-end
----@return boolean
-Process.wait = await(function(self)
-    return self:async_wait()
-end)
 
 ---@param self AstalLuaProcess
 ---@param callback fun(ok: boolean)
-Process.wait_async = async(function(self, callback)
-    callback(self:async_wait())
-end)
+function Process:wait_async(callback)
+    self.subprocess:wait_async(nil, function(_, task)
+        callback(self.subprocess:wait_finish(task))
+    end)
+end
 
 ---@param signal UNIX_SIGNALS
 function Process:signal(signal)
     self.subprocess:send_signal(UNIX_SIGNALS[signal])
+end
+
+function Process:quit()
+    self:signal('SIGQUIT')
 end
 
 function Process:quit()
@@ -178,45 +133,79 @@ end
 
 local M = {}
 
---- Class that acts as io.popen using Gio.Subprocess as backend
+---Class that acts as io.popen using Gio.Subprocess as backend
+---@deprecated
 M.Process = Process
 
 ---@param command string | string[]
 ---@param on_stdout? fun(out: string)
 ---@param on_stderr? fun(err: string)
+---@return Gio.Subprocess
 M.subprocess = function(command, on_stdout, on_stderr)
-    local p = Process.new(command, 'r')
+    local argv = command
 
-    p:lines_async(on_stdout or function(out)
-        io.stdout:write(('%s\n'):format(out))
-    end)
+    if type(command) == 'string' then
+        argv = GLib.shell_parse_argv(command) --- @diagnostic disable-line
+    end
 
-    p:errors_async(on_stderr or function(err)
-        io.stderr:write(('%s\n'):format(err))
-    end)
+    local p = Gio.Subprocess({
+        argv = argv,
+        flags = { 'STDOUT_PIPE', 'STDERR_PIPE' },
+    })
+
+    local stderr_stream = Gio.DataInputStream.new(p:get_stderr_pipe())
+    local stdout_stream = Gio.DataInputStream.new(p:get_stdout_pipe())
+
+    on_stdout = on_stdout
+        or function(out)
+            io.stdout:write(string.format('%s\n', out))
+        end
+
+    on_stderr = on_stderr
+        or function(err)
+            io.stderr:write(string.format('%s\n', err))
+        end
+
+    ---@param stream Gio.DataInputStream
+    local function read(stream)
+        stream:read_line_async(GLib.PRIORITY_DEFAULT, nil, function(_, task)
+            local out = stream:read_line_finish_utf8(task) ---@diagnostic disable-line
+
+            if not out then
+                return
+            end
+
+            if stream == stdout_stream then
+                on_stdout(out)
+            elseif stream == stderr_stream then
+                on_stderr(out)
+            end
+
+            return read(stream)
+        end)
+    end
+
+    read(stderr_stream)
+    read(stdout_stream)
 
     return p
 end
 
+---@async
 ---@param command string | string[]
 M.async_exec = function(command)
-    local p = Process.new(command, 'r')
-    local ok = p:async_wait()
-    local lines = {}
+    local argv = command
 
-    if ok then
-        for line in p:async_lines() do
-            table.insert(lines, line)
-        end
-
-        return table.concat(lines, '\n')
-    else
-        for err in p:async_errors() do
-            table.insert(lines, err)
-        end
-
-        return nil, table.concat(lines, '\n')
+    if type(command) == 'string' then
+        argv = GLib.shell_parse_argv(command) --- @diagnostic disable-line
     end
+
+    local p = Gio.Subprocess({
+        argv = argv,
+        flags = { 'STDOUT_PIPE', 'STDERR_PIPE' },
+    })
+
+    return p:async_communicate_utf8()
 end
 
 ---@param command string | string[]
