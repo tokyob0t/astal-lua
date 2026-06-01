@@ -45,7 +45,9 @@ end
 
 ---@param value any
 function Variable:set(value)
-    self.value = value
+    if self.value ~= value then
+        self.value = value
+    end
 end
 
 function Variable:is_polling()
@@ -148,17 +150,16 @@ end
 function Variable:observe(gobject, signal, callback)
     local id
 
-    local set = function(...)
-        self:set(callback(...))
-    end
-
     if string.sub(signal, 1, 8) == 'notify::' then
         local prop = string.gsub(signal, 'notify::', '')
+
         id = gobject.on_notify:connect(function()
-            set(callback(gobject, gobject[prop]))
+            self:set(callback(gobject, gobject[prop]))
         end, prop, false)
     else
-        id = gobject['on_' .. signal]:connect(set)
+        id = gobject['on_' .. signal]:connect(function(...)
+            self:set(callback(...))
+        end)
     end
 
     self:on_dropped(function()
