@@ -1,8 +1,8 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = '0.1.3-1'
+version = 'dev-4'
 
-source = { url = 'git+https://github.com/tokyob0t/astal-lua.git' }
+source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 
 description = {
     summary = 'lua bindings for libastal.',
@@ -10,7 +10,10 @@ description = {
     license = 'LGPL-2.1',
 }
 
-dependencies = { 'lua >= 5.1, < 5.4', 'lgi >= 0.9.2' }
+dependencies = {
+    'lua >= 5.1',
+    'lgi >= 0.9.2',
+}
 
 build = {
     type = 'builtin',
