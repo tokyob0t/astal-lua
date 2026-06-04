@@ -16,7 +16,7 @@ local get_children = {}
 local css_providers = {}
 local types = setmetatable({}, { __mode = 'k' })
 
-local env = config({
+local env = config {
     -- must include
     set_children = function(self, children)
         for _, ch in ipairs(get_children[self._name](self)) do
@@ -60,7 +60,7 @@ local env = config({
             self:remove_css_class(css_class)
         end
     end,
-})
+}
 
 local do_set_children = function(self, children)
     for _, ch in ipairs(children) do
@@ -118,17 +118,7 @@ return function(ctor, config)
         end
     end
 
-    return function(args, ...)
-        local _type = args.type
-
-        args.type = nil
-
-        local new = construct(ctor, args, ...)
-
-        if _type then
-            types[new] = _type
-        end
-
-        return new
+    return function(...)
+        return construct(ctor, ...)
     end
 end
