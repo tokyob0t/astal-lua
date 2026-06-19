@@ -1,6 +1,11 @@
 local lgi = require('lgi')
+
 ---@type Gtk
 local Gtk = lgi.require('Gtk', '3.0')
+
+---@type Gio
+local Gio = lgi.require('Gio', '2.0')
+
 ---@type Astal
 local Astal = lgi.require('Astal', '3.0')
 
@@ -16,15 +21,33 @@ return {
             self.center_widget = children[2]
             self.end_widget = children[3]
         end,
+        get_children = function(self)
+            return {
+                self.start_widget,
+                self.center_widget,
+                self.end_widget,
+            }
+        end,
     }),
     CircularProgress = astalify(Astal.CircularProgress),
     DrawingArea = astalify(Gtk.DrawingArea),
-    Entry = astalify(Gtk.Entry),
+    Entry = astalify(Gtk.Entry, {
+        get_children = function()
+            return {}
+        end,
+    }),
     EventBox = astalify(Astal.EventBox),
     -- TODO: Fixed
     -- TODO: FlowBox
     Icon = astalify(Astal.Icon),
-    Label = astalify(Gtk.Label),
+    Label = astalify(Gtk.Label, {
+        set_children = function(self, children)
+            self.label = tostring(children[1])
+        end,
+        get_children = function()
+            return {}
+        end,
+    }),
     LevelBar = astalify(Astal.LevelBar),
     -- TODO: ListBox
     MenuButton = astalify(Gtk.MenuButton, {
@@ -32,6 +55,8 @@ return {
             for _, child in ipairs(children) do
                 if Gtk.Popover:is_type_of(child) then
                     self:set_popover(child)
+                elseif Gio.MenuModel:is_type_of(child) then
+                    self:set_menu_model(child)
                 else
                     self:set_child(child)
                 end

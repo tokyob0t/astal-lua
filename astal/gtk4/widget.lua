@@ -1,6 +1,8 @@
 local lgi = require('lgi')
 ---@type Gtk
 local Gtk = lgi.require('Gtk', '4.0')
+---@type Gio
+local Gio = lgi.require('Gio', '2.0')
 ---@type Astal
 local Astal = lgi.require('Astal', '4.0')
 
@@ -16,6 +18,17 @@ Gtk.Widget._attribute.vertical = {
 
         self:toggle_css_class('vertical', self.orientation == 'VERTICAL')
         self:toggle_css_class('horizontal', self.orientation == 'HORIZONTAL')
+    end,
+}
+
+Gtk.Popover._attribute.offset = {
+    get = function(self)
+        return { self:get_offset() }
+    end,
+    set = function(self, v)
+        local x, y = v[1], v[2]
+
+        self:set_offset(x, y)
     end,
 }
 
@@ -48,10 +61,6 @@ return {
 
     Box = astalify(Gtk.Box, {
         set_children = function(self, children)
-            -- for _, ch in ipairs(self:get_children()) do
-            --     self:remove(ch)
-            -- end
-
             for _, ch in ipairs(children) do
                 self:append(ch)
             end
@@ -69,13 +78,30 @@ return {
         end,
     }),
 
-    Entry = astalify(Gtk.Entry),
+    Entry = astalify(Gtk.Entry, {
+        get_children = function(self)
+            return {}
+        end,
+    }),
 
     CenterBox = astalify(Gtk.CenterBox, {
         set_children = function(self, children)
-            self.start_widget = children[1] or Gtk.Box {}
-            self.center_widget = children[2] or Gtk.Box {}
-            self.end_widget = children[3] or Gtk.Box {}
+            for i, ch in ipairs(children) do
+                if ch.type == 'start' then
+                    self.start_widget = ch
+                elseif ch.type == 'center' then
+                    self.center_widget = ch
+                elseif ch.type == 'end' then
+                    self.end_widget = ch
+                -- fallback
+                elseif i == 1 then
+                    self.start_widget = ch
+                elseif i == 2 then
+                    self.center_widget = ch
+                elseif i == 3 then
+                    self.end_widget = ch
+                end
+            end
         end,
         get_children = function(self)
             return { self.start_widget, self.center_widget, self.end_widget }
@@ -104,6 +130,21 @@ return {
         end,
     }),
 
+    Stack = astalify(Gtk.Stack, {
+        set_children = function(self, children)
+            local i = 0
+
+            for _, ch in ipairs(children) do
+                if ch.name ~= '' then
+                    self:add_named(ch, ch.name)
+                else
+                    i = i + 1
+                    self:add_named(ch, tostring(i))
+                end
+            end
+        end,
+    }),
+
     Slider = astalify(Slider, {
         get_children = function()
             return {}
@@ -111,6 +152,7 @@ return {
     }),
 
     Button = astalify(Gtk.Button),
+    ToggleButton = astalify(Gtk.ToggleButton),
 
     Image = astalify(Gtk.Image, {
         get_children = function()
@@ -118,11 +160,15 @@ return {
         end,
     }),
 
+    Popover = astalify(Gtk.Popover),
+
     MenuButton = astalify(Gtk.MenuButton, {
         set_children = function(self, children)
             for _, child in ipairs(children) do
                 if Gtk.Popover:is_type_of(child) then
                     self:set_popover(child)
+                elseif Gio.MenuModel:is_type_of(child) then
+                    self:set_menu_model(child)
                 else
                     self:set_child(child)
                 end
