@@ -1,6 +1,6 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = 'dev-4'
+version = 'dev-5'
 
 source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 
@@ -22,7 +22,12 @@ build = {
         ['astal._utils'] = 'astal/_utils.lua',
         ['astal._props'] = 'astal/_props.lua',
         ['astal._construct'] = 'astal/_construct.lua',
+        --- Overrides
+        ['astal._overrides'] = 'astal/_overrides/init.lua',
+        ['astal._overrides.Gio'] = 'astal/_overrides/Gio.lua',
+        ['astal._overrides.GLib'] = 'astal/_overrides/GLib.lua',
 
+        --- Overrides
         ['astal.application'] = 'astal/application.lua',
         ['astal.binding'] = 'astal/binding.lua',
         ['astal.file'] = 'astal/file.lua',
@@ -43,6 +48,8 @@ build = {
         ['astal.gtk4.widget'] = 'astal/gtk4/widget.lua',
         ['astal.gtk4.app'] = 'astal/gtk4/app.lua',
     },
-    install = { bin = { ['astal-lua'] = 'bin/init.lua' } },
+    install = {
+        bin = { ['astal-lua'] = 'bin/init.lua' },
+    },
     build_dependencies = { { 'argparse >= 0.8.1', optional = true } },
 }
