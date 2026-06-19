@@ -48,42 +48,6 @@ function ApplicationGtk3:add_icons(path)
     end
 end
 
----@param args ApplicationStartArgs
-function ApplicationGtk3:start(args)
-    self.application_id = string.format('io.Astal.%s', args.instance_name or 'lua')
-
-    if type(args.hold) == 'nil' then
-        args.hold = true
-    end
-
-    if args.request_handler then
-        self:add_request_handler(args.request_handler)
-    end
-
-    if args.css then
-        self:apply_css(args.css)
-    end
-
-    if args.icons then
-        self:add_icons(args.icons)
-    end
-
-    self.on_startup = function()
-        if args.main then
-            args.main()
-        end
-
-        self:register()
-        self:register_dbus()
-
-        if args.hold then
-            self:hold()
-        end
-    end
-
-    self:run(arg)
-end
-
 function ApplicationGtk3:_init()
     self.priv.css_providers = {}
     self.priv.request_handlers = {}
