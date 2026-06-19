@@ -7,7 +7,7 @@ local GLib = lgi.require('GLib')
 
 
 -- stylua: ignore start
----@enum (key) UNIX_SIGNALS
+---@enum (key) AstalLua.UNIX_SIGNALS
 local UNIX_SIGNALS = {
     SIGHUP = 1, SIGINT = 2, SIGQUIT = 3,
     SIGILL = 4, SIGTRAP = 5, SIGABRT = 6,
@@ -42,7 +42,7 @@ local await = function(fn)
     end
 end
 
----@class AstalLuaProcess
+---@class AstalLua.Process
 ---@field private subprocess Gio.Subprocess
 ---@field private stdout_stream? Gio.DataInputStream
 ---@field private stderr_stream? Gio.DataInputStream
@@ -51,7 +51,7 @@ local Process = {}
 
 ---@param command string | string[]
 ---@param mode 'r' | 'w' | 'rw'
----@return AstalLuaProcess
+---@return AstalLua.Process
 Process.new = function(command, mode)
     local argv
 
@@ -73,10 +73,10 @@ Process.new = function(command, mode)
         flags = { 'STDIN_PIPE' }
     end
 
-    p.subprocess = Gio.Subprocess({
+    p.subprocess = Gio.Subprocess {
         argv = p.argv,
         flags = flags,
-    })
+    }
 
     return p
 end
@@ -110,7 +110,6 @@ function Process:errors_async(callback)
     end
 end
 
----@param self AstalLuaProcess
 ---@param callback fun(ok: boolean)
 function Process:wait_async(callback)
     self.subprocess:wait_async(nil, function(_, task)
@@ -118,7 +117,7 @@ function Process:wait_async(callback)
     end)
 end
 
----@param signal UNIX_SIGNALS
+---@param signal AstalLua.UNIX_SIGNALS
 function Process:signal(signal)
     self.subprocess:send_signal(UNIX_SIGNALS[signal])
 end
@@ -148,10 +147,10 @@ M.subprocess = function(command, on_stdout, on_stderr)
         argv = GLib.shell_parse_argv(command) --- @diagnostic disable-line
     end
 
-    local p = Gio.Subprocess({
+    local p = Gio.Subprocess {
         argv = argv,
         flags = { 'STDOUT_PIPE', 'STDERR_PIPE' },
-    })
+    }
 
     local stderr_stream = Gio.DataInputStream.new(p:get_stderr_pipe())
     local stdout_stream = Gio.DataInputStream.new(p:get_stdout_pipe())
@@ -200,12 +199,18 @@ M.async_exec = function(command)
         argv = GLib.shell_parse_argv(command) --- @diagnostic disable-line
     end
 
-    local p = Gio.Subprocess({
+    local p = Gio.Subprocess {
         argv = argv,
         flags = { 'STDOUT_PIPE', 'STDERR_PIPE' },
-    })
+    }
 
-    return p:async_communicate_utf8()
+    local stdout, stderr = p:async_communicate_utf8()
+
+    if stderr ~= '' then
+        return nil, stderr
+    end
+
+    return stdout
 end
 
 ---@param command string | string[]
