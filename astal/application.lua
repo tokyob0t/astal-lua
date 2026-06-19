@@ -7,26 +7,26 @@ local GObject = lgi.require('GObject')
 local DEFAULT_INSTANCE_NAME = 'lua'
 local PATH = '/io/Astal/Application'
 
-local IFACE_INFO = Gio.DBusInterfaceInfo({
+local IFACE_INFO = Gio.DBusInterfaceInfo {
     name = 'io.Astal.Application',
     methods = {
-        Gio.DBusMethodInfo({ name = 'Quit' }),
-        Gio.DBusMethodInfo({ name = 'Inspector' }),
-        Gio.DBusMethodInfo({
+        Gio.DBusMethodInfo { name = 'Quit' },
+        Gio.DBusMethodInfo { name = 'Inspector' },
+        Gio.DBusMethodInfo {
             name = 'ToggleWindow',
-            in_args = { Gio.DBusArgInfo({ name = 'name', signature = 's' }) },
-        }),
-        Gio.DBusMethodInfo({
+            in_args = { Gio.DBusArgInfo { name = 'name', signature = 's' } },
+        },
+        Gio.DBusMethodInfo {
             name = 'ListWindows',
-            out_args = { Gio.DBusArgInfo({ name = 'out', signature = 'as' }) },
-        }),
-        Gio.DBusMethodInfo({
+            out_args = { Gio.DBusArgInfo { name = 'out', signature = 'as' } },
+        },
+        Gio.DBusMethodInfo {
             name = 'Request',
-            in_args = { Gio.DBusArgInfo({ name = 'args', signature = 'as' }) },
-            out_args = { Gio.DBusArgInfo({ name = 'out', signature = 's' }) },
-        }),
+            in_args = { Gio.DBusArgInfo { name = 'args', signature = 'as' } },
+            out_args = { Gio.DBusArgInfo { name = 'out', signature = 's' } },
+        },
     },
-})
+}
 
 ---@class AstalLua.ApplicationBase: Gtk.Application
 ---@field monitors Gdk.Monitor[]
@@ -179,7 +179,7 @@ function Application:add_request_handler(fn)
     table.insert(self.priv.request_handlers, fn)
 end
 
----@class ApplicationStartArgs
+---@class AstalLua.ApplicationStartArgs
 ---@field instance_name? string
 ---@field main fun(args: string[]): any
 ---@field request_handler? fun(args: string[], response: fun(message: string, ...: string)): any
@@ -189,7 +189,7 @@ end
 ---@field cursor_theme? string
 ---@field css? string
 
----@param args ApplicationStartArgs
+---@param args AstalLua.ApplicationStartArgs
 function Application:start(args)
     self.application_id = string.format('io.Astal.%s', args.instance_name or 'lua')
 
@@ -236,7 +236,7 @@ function Application:start(args)
         return 0
     end
 
-    self:quit(self:run({ table.unpack(arg, 0, #arg) }))
+    self:quit(self:run { table.unpack(arg, 0, #arg) })
 end
 
 function Application:quit(code)

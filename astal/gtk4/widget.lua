@@ -73,12 +73,25 @@ return {
 
     CenterBox = astalify(Gtk.CenterBox, {
         set_children = function(self, children)
-            self.start_widget = children[1] or Gtk.Box({})
-            self.center_widget = children[2] or Gtk.Box({})
-            self.end_widget = children[3] or Gtk.Box({})
+            self.start_widget = children[1] or Gtk.Box {}
+            self.center_widget = children[2] or Gtk.Box {}
+            self.end_widget = children[3] or Gtk.Box {}
         end,
         get_children = function(self)
             return { self.start_widget, self.center_widget, self.end_widget }
+        end,
+    }),
+
+    Overlay = astalify(Gtk.Overlay, {
+        set_children = function(self, children)
+            self.child = table.remove(children, 1)
+
+            for _, ch in ipairs(children) do
+                self:add_overlay(ch)
+            end
+        end,
+        get_children = function()
+            return {}
         end,
     }),
 
