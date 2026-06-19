@@ -64,11 +64,17 @@ end
 function ApplicationGtk4:_init()
     self.priv.css_providers = {}
     self.priv.request_handlers = {}
+
+    local list = DISPLAY:get_monitors()
+
+    function list.on_items_changed()
+        self:notify('monitors')
+    end
 end
 
 ---@param callback fun(gdkmonitor: number, index: integer)
 function ApplicationGtk4:on_monitor_added(callback)
-    local list = Gdk.Display.get_default():get_monitors()
+    local list = DISPLAY:get_monitors()
 
     local id = list.on_items_changed:connect(function(_, position, _, added)
         if added == 1 then
@@ -83,7 +89,7 @@ end
 
 ---@param callback fun(index: number)
 function ApplicationGtk4:on_monitor_removed(callback)
-    local list = Gdk.Display.get_default():get_monitors()
+    local list = DISPLAY:get_monitors()
 
     local id = list.on_items_changed:connect(function(_, position, removed)
         if removed == 1 then
@@ -97,8 +103,8 @@ function ApplicationGtk4:on_monitor_removed(callback)
 end
 
 ---@type AstalLua.ApplicationGtk4
-local app = ApplicationGtk4({
+local app = ApplicationGtk4 {
     flags = { 'HANDLES_COMMAND_LINE' },
-})
+}
 
 return app
