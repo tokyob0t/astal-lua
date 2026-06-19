@@ -1,3 +1,5 @@
 /@luagir/
 /venv/
+/.session
 **.src.rock
+
