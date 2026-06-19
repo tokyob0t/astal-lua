@@ -1,8 +1,8 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = '0.2.1-1'
+version = '0.2.1-2'
 
-source = { url = 'git+https://github.com/tokyob0t/astal-lua.git' }
+source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 
 description = {
     summary = 'lua bindings for libastal.',
@@ -20,7 +20,7 @@ build = {
         ['astal._props'] = 'astal/_props.lua',
         ['astal._construct'] = 'astal/_construct.lua',
         --- Overrides
-        ['astal._overrides'] = 'astal/_overrides/init.lua',
+        ['astal._overrides.init'] = 'astal/_overrides/init.lua',
         ['astal._overrides.Gio'] = 'astal/_overrides/Gio.lua',
         ['astal._overrides.GLib'] = 'astal/_overrides/GLib.lua',
 

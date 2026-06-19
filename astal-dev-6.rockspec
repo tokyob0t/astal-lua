@@ -1,6 +1,6 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = 'dev-5'
+version = 'dev-6'
 
 source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 
@@ -23,7 +23,7 @@ build = {
         ['astal._props'] = 'astal/_props.lua',
         ['astal._construct'] = 'astal/_construct.lua',
         --- Overrides
-        ['astal._overrides'] = 'astal/_overrides/init.lua',
+        ['astal._overrides.init'] = 'astal/_overrides/init.lua',
         ['astal._overrides.Gio'] = 'astal/_overrides/Gio.lua',
         ['astal._overrides.GLib'] = 'astal/_overrides/GLib.lua',
 
