@@ -4,24 +4,22 @@ local GObject = lgi.require('GObject', '2.0')
 local Process = require('astal.process')
 local Time = require('astal.time')
 
----@alias Connectable GObject.Object | AstalLuaVariable | { subscribe: function }
+---@alias AstalLua.Connectable GObject.Object | AstalLua.Variable<any> | { subscribe: function }
 
----@class AstalLuaVariable: GObject.Object
+---@class AstalLua.Variable<T>: GObject.Object, {
+--- value: T,
+--- subscribe: fun(self, callback: fun(value: T)  ),
+--- get: ( fun(self): T ),
+--- set: ( fun(self, value: T) )}
 ---@field value any
 ---@field private priv table
----@field private _name "AstalLuaVariable"
----@field private _attribute table
+---@field private _name "AstalLua.Variable"
 ---@field private _property table
----@overload fun(args: { value: any }): AstalLuaVariable
+---@overload fun(args: { value: any }): AstalLua.Variable
 local Variable = GObject.Object:derive('AstalLua.Variable')
 
-Variable._property.value = GObject.ParamSpecBoolean(
-    'value',
-    'value',
-    'dummy boolean property',
-    false,
-    { 'READABLE', 'WRITABLE' }
-)
+Variable._property.value =
+    GObject.ParamSpecBoolean('value', 'value', 'dummy boolean property', false, { 'READWRITE' })
 
 Variable._attribute.value = {
     set = function(self, value)
@@ -35,7 +33,7 @@ Variable._attribute.value = {
 
 ---@private
 function Variable:_tostring()
-    return string.format('%s<%s>', self._name, self:get())
+    return string.format('%s<%q>', self._name, self:get())
 end
 
 ---@return any
@@ -61,7 +59,7 @@ function Variable:start_poll()
 
     if self.priv.poll_fn then
         self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
-            self:set(self.priv.poll_fn(self:get()))
+            self:set(self.priv.poll_transform(self.priv.poll_fn(), self:get()))
         end)
     elseif self.priv.poll_exec then
         self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
@@ -86,15 +84,13 @@ end
 ---@param interval integer
 ---@param exec string | string[]
 ---@param transform? fun(next: any, prev: any): any
----@overload fun(self: AstalLuaVariable, interval: integer, exec: fun(prev: any): any ): AstalLuaVariable
+---@overload fun(self: AstalLua.Variable<`T`>, interval: integer, exec: fun(prev: any): any ): AstalLua.Variable<T>
 function Variable:poll(interval, exec, transform)
-    transform = transform or function(next)
-        return next
-    end
-
     self:stop_poll()
     self.priv.poll_interval = interval
-    self.priv.poll_transform = transform
+    self.priv.poll_transform = transform or function(next)
+        return next
+    end
 
     if type(exec) == 'function' then
         self.priv.poll_fn = exec
@@ -169,7 +165,7 @@ function Variable:observe(gobject, signal, callback)
     return self
 end
 
----@param callback fun(value: any)
+---@param callback fun(value: T)
 ---@return function
 function Variable:subscribe(callback)
     local id = self.on_notify:connect(function()
@@ -189,15 +185,15 @@ end
 
 ---@private
 function Variable:emit_dropped()
-    for _, value in ipairs(self.priv.droptbl) do
-        value(self)
+    for _, fn in ipairs(self.priv.droptbl) do
+        fn(self)
     end
 end
 
 ---@private
 function Variable:emit_error(error)
-    for _, value in ipairs(self.priv.errtbl) do
-        value(self, error)
+    for _, fn in ipairs(self.priv.errtbl) do
+        fn(self, error)
     end
 end
 
@@ -217,9 +213,10 @@ function Variable:on_error(fn)
     return self
 end
 
----@param deps ( AstalLuaVariable | AstalLuaBinding )[]
----@param transform? fun(...): any
----@return AstalLuaVariable
+---@generic T
+---@param deps table<number, AstalLua.Variable<any> | AstalLua.Binding<any>>
+---@param transform? fun(...): T
+---@return AstalLua.Variable<T>
 function Variable.derive(deps, transform)
     local bind = require('astal.binding')
 
@@ -278,10 +275,11 @@ function Variable:_init()
     end)
 end
 
----@param value any
----@return AstalLuaVariable
+---@generic T
+---@param value T
+---@return AstalLua.Variable<T>
 function Variable.new(value)
-    return Variable({ value = value })
+    return Variable { value = value }
 end
 
 return Variable

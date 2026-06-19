@@ -1,7 +1,8 @@
-indent_type = "Spaces"
+indent_type = 'Spaces'
 indent_width = 4
 column_width = 100
-quote_style = "AutoPreferSingle"
+quote_style = 'AutoPreferSingle'
+call_parentheses = 'NoSingleTable'
 
 [sort_requires]
 enabled = true
