@@ -5,18 +5,11 @@ local Gio = lgi.require('Gio')
 local GLib = lgi.require('GLib')
 local argparse = require('argparse')
 
-local IFACE = 'io.Astal.Application'
-local PATH = '/io/Astal/Application'
+local Instance = {
+    name = 'astal-lua',
+}
 
-local function printerr(fmt, ...)
-    io.stderr:write(('\27[31mError:\27[0m ' .. fmt .. '\n'):format(...))
-end
-local function print(fmt, ...)
-    io.stdout:write((fmt .. '\n'):format(...))
-end
-
----@return string[]
-local function list_instances()
+function Instance.list_instances()
     local conn = Gio.bus_get_sync('SESSION')
 
     local response = conn:call_sync(
@@ -31,7 +24,9 @@ local function list_instances()
     )
 
     local instances = {}
+
     local prefix = 'io.Astal.'
+
     for _, name in response.value[1]:ipairs() do
         if name:sub(1, #prefix) == prefix then
             table.insert(instances, name:sub(#prefix + 1))
@@ -40,54 +35,64 @@ local function list_instances()
     return instances
 end
 
-local function list_windows()
-    local conn = Gio.bus_get_sync('SESSION')
-
-    local response = conn:call_sync(
-        'org.freedesktop.DBus',
-        '/org/freedesktop/DBus',
-        'org.freedesktop.DBus',
-        'ListNames',
-        GLib.Variant('()', {}),
-        GLib.VariantType('(as)'),
-        { 'NONE' },
-        -1
-    )
-
-    local instances = {}
-    local prefix = 'io.Astal.'
-    for _, name in response.value[1]:ipairs() do
-        if name:sub(1, #prefix) == prefix then
-            table.insert(instances, name:sub(#prefix + 1))
-        end
-    end
-    return instances
-end
-
----@return boolean
-local function is_running(name)
-    for _, instance in ipairs(list_instances()) do
-        if instance == name then
+function Instance:is_running()
+    for _, instance in ipairs(self.list_instances()) do
+        if instance == self.name then
             return true
         end
     end
+
     return false
 end
 
-local function call_method(instance_name, method, args)
+---@param name string
+---@param variant GLib.Variant
+---@param return_type GLib.VariantType
+function Instance:invoke_method(name, variant, return_type)
     local conn = Gio.bus_get_sync('SESSION')
-    local name = string.format('io.Astal.%s', instance_name)
-    local vtype
+    local instance_name = string.format('io.Astal.%s', self.name)
 
-    if method == 'Request' then
-        vtype = GLib.VariantType('(s)')
-    elseif method == 'ListWindows' then
-        vtype = GLib.VariantType('(as)')
-    else
-        vtype = GLib.VariantType('()')
+    return conn:call_sync(
+        instance_name,
+        '/io/Astal/Application',
+        'io.Astal.Application',
+        name,
+        variant,
+        return_type,
+        { 'NONE' },
+        -1
+    )
+end
+
+---@param args string[]
+function Instance:Request(args)
+    return self:invoke_method('Request', GLib.Variant('(as)', { args }), GLib.VariantType('(s)'))
+end
+
+function Instance:ListWindows()
+    local tuple = self:invoke_method('ListWindows', GLib.Variant('()'), GLib.VariantType('(as)'))
+
+    local array = tuple:get_child_value(0)
+
+    local windows = {}
+
+    for _, win in array:ipairs() do
+        table.insert(windows, win)
     end
 
-    return conn:call_sync(name, PATH, IFACE, method, args, vtype, { 'NONE' }, -1)
+    return windows
+end
+
+function Instance:ToggleWindow(name)
+    return self:invoke_method('ToggleWindow', GLib.Variant('(s)', { name }), GLib.VariantType('()'))
+end
+
+function Instance:Inspector()
+    return self:invoke_method('Inspector', GLib.Variant('()'), GLib.VariantType('()'))
+end
+
+function Instance:Quit()
+    return self:invoke_method('Quit', GLib.Variant('()'), GLib.Variant('()'))
 end
 
 local function main()
@@ -123,18 +128,19 @@ local function main()
     request:flag('-q --quit', 'Quit a running instance.')
     request:flag('-I --inspector', 'Open GTK inspector/debug tool.')
 
+    -- local bundle = parser:command('bundle'):summary('Pack your project in a single file')
+
     local args = parser:parse()
 
-    local instance_name = args.instance
+    Instance.name = args.instance
 
     if args.list then
-        for _, inst in ipairs(list_instances()) do
+        for _, inst in ipairs(Instance.list_instances()) do
             print(inst)
         end
-        return 0
-    end
 
-    if args.run then
+        return 0
+    elseif args.run then
         if args.gtk4 then
             GLib.setenv('LD_PRELOAD', '/usr/lib/libgtk4-layer-shell.so')
         end
@@ -152,48 +158,39 @@ local function main()
         end
 
         return os.execute(string.format('lua%s %s', args.lua_version, args.file))
-    end
-
-    if args.request then
-        if args.instance and not is_running(instance_name) then
-            printerr("Instance '%s' is not running", instance_name)
+    elseif args.request then
+        if not Instance:is_running() then
+            io.stderr:write(string.format("Instance '%s' is not running", Instance.name))
+            io.stderr:flush()
             return 1
-        end
-
-        if args.inspector then
-            call_method(instance_name, 'Inspector', GLib.Variant('()'))
+        elseif args.inspector then
+            Instance:Inspector()
             return 0
-        end
-
-        if args.quit then
-            call_method(instance_name, 'Quit', GLib.Variant('()'))
+        elseif args.quit then
+            Instance:Quit()
             return 0
-        end
-
-        if args.toggle_window then
-            call_method(instance_name, 'ToggleWindow', GLib.Variant('(s)', { args.toggle_window }))
+        elseif args.toggle_window then
+            Instance:ToggleWindow(args.toggle_window)
             return 0
-        end
+        elseif args.list_windows then
+            local windows = Instance:ListWindows()
 
-        if args.list_windows then
-            local variant = call_method(instance_name, 'ListWindows', GLib.Variant('()'))
-
-            local array = variant:get_child_value(0)
-
-            for _, value in array:ipairs() do
-                print(value)
+            for _, win in ipairs(windows) do
+                io.stdout:write(win .. '\n')
             end
 
-            return 0
-        end
+            io.stdout:flush()
 
-        if args.args then
-            local variant =
-                call_method(instance_name, 'Request', GLib.Variant('(as)', { args.args }))
-            if variant then
-                print('%s\n', variant.value[1])
+            return 0
+        elseif args.args then
+            local response = Instance:Request(args.args)
+
+            if response then
+                io.stdout:write(response .. '\n')
+                io.stdout:flush()
+                return 0
             else
-                printerr("Instance '%s' did't give a response", instance_name)
+                io.stderr:write(string.format("Instance '%s' did't give a response", Instance.name))
                 return 1
             end
         end
