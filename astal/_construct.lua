@@ -17,7 +17,7 @@ local Gtk = lgi.require('Gtk')
 local function setup_controllers(widget, args)
     local function pick(...)
         local tbl = {}
-        for _, value in ipairs({ ... }) do
+        for _, value in ipairs { ... } do
             if args[value] then
                 table.insert(tbl, args[value])
                 args[value] = nil
@@ -43,7 +43,7 @@ local function setup_controllers(widget, args)
     local on_focus_enter, on_focus_leave = pick('on_focus_enter', 'on_focus_leave')
 
     if on_focus_enter or on_focus_leave then
-        attach(Gtk.EventControllerFocus({ propagation_phase = 'CAPTURE' }), {
+        attach(Gtk.EventControllerFocus { propagation_phase = 'CAPTURE' }, {
             enter = on_focus_enter,
             leave = on_focus_leave,
         })
@@ -54,7 +54,7 @@ local function setup_controllers(widget, args)
         pick('on_key_pressed', 'on_key_released', 'on_key_modifier')
 
     if on_key_pressed or on_key_released or on_key_modifier then
-        attach(Gtk.EventControllerKey({ propagation_phase = 'CAPTURE' }), {
+        attach(Gtk.EventControllerKey { propagation_phase = 'CAPTURE' }, {
             ['key-pressed'] = on_key_pressed,
             ['key-released'] = on_key_released,
             modifiers = on_key_modifier,
@@ -65,7 +65,7 @@ local function setup_controllers(widget, args)
     local on_button_pressed, on_button_released = pick('on_button_pressed', 'on_button_released')
 
     if on_button_pressed or on_button_released then
-        local gesture = Gtk.GestureClick({ button = 0, propagation_phase = 'CAPTURE' })
+        local gesture = Gtk.GestureClick { button = 0, propagation_phase = 'CAPTURE' }
 
         widget:add_controller(gesture)
 
@@ -87,7 +87,7 @@ local function setup_controllers(widget, args)
         pick('on_hover_enter', 'on_hover_leave', 'on_motion')
 
     if on_hover_enter or on_hover_leave or on_motion then
-        attach(Gtk.EventControllerMotion({ propagation_phase = 'CAPTURE' }), {
+        attach(Gtk.EventControllerMotion { propagation_phase = 'CAPTURE' }, {
             enter = on_hover_enter,
             leave = on_hover_leave,
             motion = on_motion,
@@ -99,10 +99,10 @@ local function setup_controllers(widget, args)
 
     if on_scroll or on_scroll_decelerate then
         attach(
-            Gtk.EventControllerScroll({
+            Gtk.EventControllerScroll {
                 propagation_phase = 'CAPTURE',
                 flags = { 'BOTH_AXES', 'KINETIC' },
-            }),
+            },
             { scroll = on_scroll, decelerate = on_scroll_decelerate }
         )
     end
@@ -111,7 +111,7 @@ local function setup_controllers(widget, args)
         pick('on_drag_begin', 'on_drag_update', 'on_drag_end')
 
     if on_drag_begin or on_drag_update or on_drag_end then
-        local gesture = Gtk.GestureDrag({ button = 0, propagation_phase = 'CAPTURE' })
+        local gesture = Gtk.GestureDrag { button = 0, propagation_phase = 'CAPTURE' }
 
         widget:add_controller(gesture)
 
@@ -136,18 +136,17 @@ local function setup_controllers(widget, args)
     return args
 end
 
-return function(ctor, args, ...)
-    if not args then
-        args = {}
-    end
+return function(ctor, ...)
+    local n = select('#', ...)
+    local first = select(1, ...)
+
+    local has_args_table = type(first) == 'table' and not getmetatable(first)
+
+    local args = has_args_table and first or {}
 
     local bindings = {}
     local signal_handlers = {}
     local setup = args.setup
-
-    if args.visible == nil then
-        args.visible = true
-    end
 
     args.setup = nil
 
@@ -155,31 +154,26 @@ return function(ctor, args, ...)
         return type(key) == 'number' and not Gtk.EventController:is_type_of(value)
     end))
 
-    local n = select('#', ...)
-
-    for i = 1, n do
-        table.insert(children, select(i, ...))
-    end
-
-    children = utils.merge_bindings(children)
-
     local controllers = utils.filter(args, function(value, key)
         return type(key) == 'number' and Gtk.EventController:is_type_of(value)
     end)
 
-    local props = utils.filter(args, function(_, key)
-        return type(key) == 'string'
-    end)
+    local start = has_args_table and 2 or 1
 
-    do
-        local _props = {}
-        -- normalize props just in case we're using fennel :3
-        for key, value in pairs(props) do
-            _props[key:gsub('-', '_')] = value
+    for i = start, n do
+        local value = select(i, ...)
+        if not Gtk.EventController:is_type_of(value) then
+            children[#children + 1] = value
+        else
+            controllers[#controllers + 1] = value
         end
-
-        props = _props
     end
+
+    children = utils.merge_bindings(children)
+
+    local props = utils.normalize_keys(utils.filter(args, function(_, key)
+        return type(key) == 'string'
+    end))
 
     for key, value in pairs(props) do
         if string.sub(key, 1, 3) == 'on_' and type(value) == 'function' then
@@ -234,6 +228,12 @@ return function(ctor, args, ...)
 
     if setup then
         setup(new)
+    end
+
+    if Gtk.Widget:is_type_of(new) then
+        if args.visible == nil then
+            new.visible = true
+        end
     end
 
     return new
