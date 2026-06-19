@@ -16,13 +16,13 @@ Gtk.Widget._attribute.action_group = {
 
 local no_implicit_destroy = {}
 
----@class Astalified: Gtk.Widget
+---@class AstalLua.Astalified: Gtk.Widget
 ---@field css string?
 ---@field vertical boolean
 ---@field children Gtk.Widget[]
 ---@field no_implicit_destroy boolean
 ---@field toggle_class_name fun(self: Gtk.Widget, class_name: string, condition: boolean)
----@field hook fun(self: Gtk.Widget, gobject: Connectable, signalOrCallback: string | fun(gobject: Connectable, prop: any), callback?: fun(gobject: Connectable, prop: any) )
+---@field hook fun(self: Gtk.Widget, gobject: AstalLua.Connectable, signalOrCallback: string | fun(gobject: AstalLua.Connectable, prop: any), callback?: fun(gobject: AstalLua.Connectable, prop: any) )
 
 local default_props = {
     set_children = not_implemented('set_children'),
