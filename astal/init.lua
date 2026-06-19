@@ -9,9 +9,11 @@ local Time = require('astal.time')
 local Variable = require('astal.variable')
 local lgi = require('lgi')
 
+require('astal._overrides')
+
 return {
     Variable = Variable,
-    bind = Binding.new,
+    bind = Binding,
 
     interval = Time.interval,
     timeout = Time.timeout,
