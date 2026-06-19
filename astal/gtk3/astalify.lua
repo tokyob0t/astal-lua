@@ -14,7 +14,17 @@ local utils = require('astal._utils')
 local set_children = {}
 local get_children = {}
 
-local env = config({
+local lookup_children = {
+    __index = function(t, k)
+        for _, v in ipairs(t) do
+            if v.name == k then
+                return v
+            end
+        end
+    end,
+}
+
+local env = config {
     -- must include
     set_children = function(self, children)
         for _, ch in ipairs(get_children[self._name](self)) do
@@ -28,7 +38,7 @@ local env = config({
         set_children[self._name](self, utils.ensure_widgets(children))
     end,
     get_children = function(self)
-        return get_children[self._name](self)
+        return setmetatable(get_children[self._name](self), lookup_children)
     end,
     set_class_name = function(self, class_name)
         local names = {}
@@ -51,7 +61,7 @@ local env = config({
     get_cursor = Astal.widget_get_cursor,
     set_click_through = Astal.widget_set_click_through,
     get_click_through = Astal.widget_get_click_through,
-})
+}
 
 local do_set_children = function(self, children)
     if Gtk.Bin:is_type_of(self) then
@@ -75,8 +85,6 @@ local do_get_children = function(self)
     end
 end
 
--- EventControllerSignals
-
 ---@generic T: Gtk.Widget
 ---@param ctor T
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
@@ -90,20 +98,22 @@ return function(ctor, config)
     set_children[ctor._name] = config.set_children or do_set_children
 
     for key, value in pairs(env) do
-        ctor[key] = value
+        if key ~= 'init' then
+            ctor[key] = value
 
-        local prefix, propname = key:match('^([gs]et)_(.+)$')
+            local prefix, propname = key:match('^([gs]et)_(.+)$')
 
-        if prefix then
-            if not ctor._attribute[propname] then
-                ctor._attribute[propname] = {}
+            if prefix then
+                if not ctor._attribute[propname] then
+                    ctor._attribute[propname] = {}
+                end
+
+                ctor._attribute[propname][prefix] = value
             end
-
-            ctor._attribute[propname][prefix] = value
         end
     end
 
-    return function(args, ...)
-        return construct(ctor, args, ...)
+    return function(...)
+        return construct(ctor, ...)
     end
 end

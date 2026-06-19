@@ -16,6 +16,16 @@ local get_children = {}
 local css_providers = {}
 local types = setmetatable({}, { __mode = 'k' })
 
+local lookup_children = {
+    __index = function(t, k)
+        for _, v in ipairs(t) do
+            if v.name == k then
+                return v
+            end
+        end
+    end,
+}
+
 local env = config {
     -- must include
     set_children = function(self, children)
@@ -30,7 +40,7 @@ local env = config {
         set_children[self._name](self, utils.ensure_widgets(children))
     end,
     get_children = function(self)
-        return get_children[self._name](self)
+        return setmetatable(get_children[self._name](self), lookup_children)
     end,
     set_css = function(self, css)
         local ctx = self:get_style_context()
@@ -39,11 +49,7 @@ local env = config {
             css_providers[self] = Gtk.CssProvider.new()
         end
 
-        if not css:find('[{}]') then
-            css = '* { ' .. css .. ' }'
-        end
-
-        css_providers[self]:load_from_string(css)
+        css_providers[self]:load_from_string(utils.normalize_css(css))
 
         ctx:add_provider(css_providers[self], Gtk.STYLE_PROVIDER_PRIORITY_USER)
     end,
@@ -53,6 +59,24 @@ local env = config {
         end
         return ''
     end,
+    set_type = function(self, _type)
+        types[self] = _type
+    end,
+    get_type = function(self)
+        return types[self]
+    end,
+    set_class_name = function(self, class_name)
+        local names = {}
+        for word in class_name:gmatch('%S+') do
+            table.insert(names, word)
+        end
+        self.css_classes = names
+    end,
+
+    get_class_name = function(self)
+        return table.concat(self.css_classes, ' ')
+    end,
+
     toggle_css_class = function(self, css_class, condition)
         if condition then
             self:add_css_class(css_class)
@@ -64,8 +88,8 @@ local env = config {
 
 local do_set_children = function(self, children)
     for _, ch in ipairs(children) do
-        if types[ch] then
-            self:do_add_child(dummy_builder, ch, types[ch])
+        if ch.type then
+            self:do_add_child(dummy_builder, ch, ch.type)
         else
             self:do_add_child(dummy_builder, ch)
         end
