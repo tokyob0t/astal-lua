@@ -8,6 +8,8 @@ local Astal = lgi.require('Astal', '4.0')
 
 local astalify = require('astal.gtk4.astalify')
 
+local CircularProgress = require('astal.gtk4.widgets.circularprogress')
+
 ---@diagnostic disable-next-line
 Gtk.Widget._attribute.vertical = {
     get = function(self)
@@ -56,6 +58,14 @@ return {
     astalify = astalify,
 
     DrawingArea = astalify(DrawingArea),
+    CircularProgress = astalify(CircularProgress, {
+        set_children = function(self, children)
+            self.child = children[1]
+        end,
+        get_children = function(self)
+            return { self.child }
+        end,
+    }),
 
     Window = astalify(Astal.Window),
 
@@ -132,14 +142,11 @@ return {
 
     Stack = astalify(Gtk.Stack, {
         set_children = function(self, children)
-            local i = 0
-
             for _, ch in ipairs(children) do
                 if ch.name ~= '' then
                     self:add_named(ch, ch.name)
                 else
-                    i = i + 1
-                    self:add_named(ch, tostring(i))
+                    self:add_child(ch)
                 end
             end
         end,

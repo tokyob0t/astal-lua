@@ -1,6 +1,6 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = 'dev-7'
+version = '0.2.1-4'
 
 source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 
@@ -10,10 +10,7 @@ description = {
     license = 'LGPL-2.1',
 }
 
-dependencies = {
-    'lua >= 5.1',
-    'lgi >= 0.9.2',
-}
+dependencies = { 'lua >= 5.1', 'lgi >= 0.9.2' }
 
 build = {
     type = 'builtin',
@@ -47,8 +44,7 @@ build = {
         ['astal.gtk4.astalify'] = 'astal/gtk4/astalify.lua',
         ['astal.gtk4.widget'] = 'astal/gtk4/widget.lua',
         ['astal.gtk4.app'] = 'astal/gtk4/app.lua',
-        --- Custom Gtk4 Widgets
-        ['astal.gtk4.widgets.CircularProgress'] = 'astal/gtk4/widgets/CircularProgress.lua',
+        ['astal.gtk4.widgets.circularprogress'] = 'astal/gtk4/widgets/circularprogress.lua',
     },
     install = {
         bin = { ['astal-lua'] = 'bin/init.lua' },
