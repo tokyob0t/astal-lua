@@ -1,6 +1,6 @@
 ---@diagnostic disable:lowercase-global
 package = 'astal'
-version = '0.2.1-2'
+version = '0.2.1-3'
 
 source = { url = 'git+https://github.com/tokyob0t/astal-lua' }
 

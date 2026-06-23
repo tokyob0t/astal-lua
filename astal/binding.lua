@@ -230,7 +230,7 @@ function Binding:subscribe(callback)
         table.insert(properties, part)
     end
 
-    local subscribe_level = function(start_idx)
+    local function subscribe_level(start_idx)
         for i = start_idx, #chain_unsubs do
             if chain_unsubs[i] then
                 chain_unsubs[i]()
