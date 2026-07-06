@@ -68,6 +68,8 @@ end
 function Gio.Menu:_container_add(child)
     if Gio.MenuItem:is_type_of(child) then
         return self:append_item(child)
+    elseif Gio.Menu:is_type_of(child) then
+        return self:append_section(nil, child)
     end
 end
 

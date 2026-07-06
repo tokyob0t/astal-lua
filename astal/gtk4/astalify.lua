@@ -119,7 +119,7 @@ end
 ---@generic T: Gtk.Widget
 ---@param ctor T
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
----@return fun(args?: T | Astalified | EventControllerSignals | { setup: fun(self: T | Astalified ) }): T | Astalified
+---@return fun(args?: T | AstalLua.Astalified | AstalLua.EventControllerSignals | { setup: fun(self: T | AstalLua.Astalified ) }): T | AstalLua.Astalified
 return function(ctor, config)
     if not config then
         config = {}

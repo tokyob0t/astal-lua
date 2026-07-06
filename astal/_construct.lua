@@ -4,16 +4,16 @@ local utils = require('astal._utils')
 local lgi = require('lgi')
 local Gtk = lgi.require('Gtk')
 
----@alias EventControllerFocusSignals { on_focus_enter?: fun(widget: Gtk.Widget), on_focus_leave?: fun(widget: Gtk.Widget) }
----@alias EventControllerKeySignals { on_key_pressed?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_released?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_modifier?: fun(widget: Gtk.Widget, state: Gdk.ModifierType ) }
----@alias EventControllerMotionSignals { on_hover_enter?: fun(widget: Gtk.Widget, x: number, y: number), on_hover_leave?: fun(widget: Gtk.Widget), on_motion?: fun(widget: Gtk.Widget, x: number, y: number) }
----@alias EventControllerScrollSignals { on_scroll?: fun(widget: Gtk.Widget, dx: number, dy: number), on_scroll_decelerate?: fun(widget: Gtk.Widget, velocity_x: number, velocity_y: number) }
----@alias GestureClickSignals { on_button_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number), on_button_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number) }
----@alias GestureDragSignals { on_drag_begin?: fun(widget: Gtk.Widget, button: number, start_x: number, start_y: number), on_drag_update?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number), on_drag_end?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number) }
----@alias EventControllerSignals EventControllerFocusSignals | EventControllerKeySignals | EventControllerMotionSignals | EventControllerScrollSignals | GestureClickSignals | GestureDragSignals
+---@alias AstalLua.EventControllerFocusSignals { on_focus_enter?: fun(widget: Gtk.Widget), on_focus_leave?: fun(widget: Gtk.Widget) }
+---@alias AstalLua.EventControllerKeySignals { on_key_pressed?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_released?: fun(widget: Gtk.Widget, keyval: number, keycode: number, state: Gdk.ModifierType), on_key_modifier?: fun(widget: Gtk.Widget, state: Gdk.ModifierType ) }
+---@alias AstalLua.EventControllerMotionSignals { on_hover_enter?: fun(widget: Gtk.Widget, x: number, y: number), on_hover_leave?: fun(widget: Gtk.Widget), on_motion?: fun(widget: Gtk.Widget, x: number, y: number) }
+---@alias AstalLua.EventControllerScrollSignals { on_scroll?: fun(widget: Gtk.Widget, dx: number, dy: number), on_scroll_decelerate?: fun(widget: Gtk.Widget, velocity_x: number, velocity_y: number) }
+---@alias AstalLua.GestureClickSignals { on_button_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number), on_button_pressed?: fun(widget: Gtk.Widget, button: number, n_press: number, x: number, y: number) }
+---@alias AstalLua.GestureDragSignals { on_drag_begin?: fun(widget: Gtk.Widget, button: number, start_x: number, start_y: number), on_drag_update?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number), on_drag_end?: fun(widget: Gtk.Widget, button: number, offset_x: number, offset_y: number) }
+---@alias AstalLua.EventControllerSignals AstalLua.EventControllerFocusSignals | AstalLua.EventControllerKeySignals | AstalLua.EventControllerMotionSignals | AstalLua.EventControllerScrollSignals | AstalLua.GestureClickSignals | AstalLua.GestureDragSignals
 
----@param widget Gtk.Widget | Astalified
----@param args EventControllerSignals
+---@param widget Gtk.Widget | AstalLua.Astalified
+---@param args AstalLua.EventControllerSignals
 local function setup_controllers(widget, args)
     local function pick(...)
         local tbl = {}
