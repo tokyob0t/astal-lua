@@ -1,3 +1,4 @@
+package.preload.lgi = function () return require("LuaGObject") end
 local astal = require("astal")
 
 local Bar = require("widget.Bar")
