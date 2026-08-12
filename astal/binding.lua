@@ -3,16 +3,16 @@ local GObject = lgi.require('GObject', '2.0')
 local Gio = lgi.require('Gio', '2.0')
 
 ---@class AstalLua.Binding<T>
----@field emitter table | AstalLua.Variable | GObject.Object
----@field property? string
+---@field emitter              table | AstalLua.Variable | GObject.Object
+---@field property?            string
 ---@field private transform_fn function
----@field private __index AstalLua.Binding
----@operator add(number | AstalLua.Binding<number> ): AstalLua.Binding<number>
----@operator sub(number | AstalLua.Binding<number> ): AstalLua.Binding<number>
----@operator mul(number | AstalLua.Binding<number> ): AstalLua.Binding<number>
----@operator div(number | AstalLua.Binding<number> ): AstalLua.Binding<number>
+---@field private __index      AstalLua.Binding
+---@operator add(number | AstalLua.Binding<number>): AstalLua.Binding<number>
+---@operator sub(number | AstalLua.Binding<number>): AstalLua.Binding<number>
+---@operator mul(number | AstalLua.Binding<number>): AstalLua.Binding<number>
+---@operator div(number | AstalLua.Binding<number>): AstalLua.Binding<number>
 ---@operator unm: AstalLua.Binding<number>
----@operator concat(string | AstalLua.Binding<string> ): AstalLua.Binding<string>
+---@operator concat(string | AstalLua.Binding<string>): AstalLua.Binding<string>
 ---@overload fun(emitter: GObject.Object, property: string): AstalLua.Binding<any>
 ---@overload fun(emitter: AstalLua.Variable<`T`>): AstalLua.Binding<T>
 ---@overload fun(emitter: { subscribe: function, get: function }): AstalLua.Binding<any>
@@ -24,36 +24,33 @@ function Binding:is_type_of(object)
     return type(object) == 'table' and object.__type == self.__type
 end
 
----@param emitter GObject.Object
+---@param emitter  GObject.Object
 ---@param property string
 ---@overload fun(emitter: AstalLua.Variable): AstalLua.Binding
 ---@overload fun(emitter: { subscribe: function, get: function }): AstalLua.Binding
 function Binding.new(emitter, property)
     if not property then
         assert(emitter.get, 'can not get: Not a GObject or a Variable ' .. tostring(emitter))
-        assert(
-            emitter.subscribe,
-            'can not subscribe: Not a GObject or a Variable ' .. tostring(emitter)
-        )
+        assert(emitter.subscribe, 'can not subscribe: Not a GObject or a Variable ' .. tostring(emitter))
     end
 
     return setmetatable({
         emitter = emitter,
         property = property,
-        transform_fn = function(v)
+        transform_fn = function (v)
             return v
-        end,
+        end
     }, Binding)
 end
 
 local function constant(v)
     return Binding.new {
-        get = function()
+        get = function ()
             return v
         end,
-        subscribe = function()
-            return function() end
-        end,
+        subscribe = function ()
+            return function () end
+        end
     }
 end
 
@@ -74,7 +71,7 @@ function Binding:__tostring()
     if self.property then
         str = str .. ', ' .. self.property
     else
-        str = str .. ', ' .. string.format('%q', self:get())
+        str = str .. ', ' .. string.format('%q', tostring(self:get()))
     end
     return str .. '>'
 end
@@ -84,7 +81,7 @@ function Binding.__concat(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 .. v2
     end)
 end
@@ -94,7 +91,7 @@ function Binding.__add(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 + v2
     end)
 end
@@ -104,7 +101,7 @@ function Binding.__sub(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 - v2
     end)
 end
@@ -114,7 +111,7 @@ function Binding.__mul(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 * v2
     end)
 end
@@ -124,14 +121,14 @@ function Binding.__div(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 / v2
     end)
 end
 
 ---@protected
 function Binding.__unm(b1)
-    return b1:as(function(v)
+    return b1:as(function (v)
         return -v
     end)
 end
@@ -141,7 +138,7 @@ function Binding.__mod(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 % v2
     end)
 end
@@ -151,7 +148,7 @@ function Binding.__pow(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return v1 ^ v2
     end)
 end
@@ -161,7 +158,7 @@ function Binding.__idiv(b1, b2)
     local _b1 = coerce(b1)
     local _b2 = coerce(b2)
 
-    return Binding.derive({ _b1, _b2 }, function(v1, v2)
+    return Binding.derive({ _b1, _b2 }, function (v1, v2)
         return math.floor(v1 / v2)
     end)
 end
@@ -196,7 +193,7 @@ end
 ---@return AstalLua.Binding<T>
 function Binding:as(transform)
     local b = Binding.new(self.emitter, self.property)
-    b.transform_fn = function(v)
+    b.transform_fn = function (v)
         return transform(self.transform_fn(v))
     end
     return b
@@ -206,19 +203,19 @@ end
 ---@return function
 function Binding:subscribe(callback)
     if not self.property then
-        return self.emitter:subscribe(function()
+        return self.emitter:subscribe(function ()
             callback(self:get())
         end)
     end
 
     if Gio.Settings:is_type_of(self.emitter) then
-        local id = self.emitter.on_changed:connect(function(_, key)
+        local id = self.emitter.on_changed:connect(function (_, key)
             if key == self.property then
                 callback(self:get())
             end
         end)
 
-        return function()
+        return function ()
             GObject.signal_handler_disconnect(self.emitter, id)
         end
     end
@@ -256,14 +253,14 @@ function Binding:subscribe(callback)
             local is_last = (i == #properties)
             local obj = current
 
-            local id = obj.on_notify:connect(function()
+            local id = obj.on_notify:connect(function ()
                 if not is_last then
                     subscribe_level(i + 1)
                 end
                 callback(self:get())
             end, prop, false)
 
-            chain_unsubs[i] = function()
+            chain_unsubs[i] = function ()
                 GObject.signal_handler_disconnect(obj, id)
             end
 
@@ -275,7 +272,7 @@ function Binding:subscribe(callback)
 
     subscribe_level(1)
 
-    return function()
+    return function ()
         for _, unsub in ipairs(chain_unsubs) do
             if unsub then
                 unsub()
@@ -286,7 +283,7 @@ end
 
 function Binding.derive(deps, transform)
     return Binding.new {
-        get = function()
+        get = function ()
             local values = {}
 
             for i, dep in ipairs(deps) do
@@ -295,7 +292,7 @@ function Binding.derive(deps, transform)
 
             return transform(table.unpack(values, 1, #deps))
         end,
-        subscribe = function(self, callback)
+        subscribe = function (self, callback)
             local unsubs = {}
 
             local function update()
@@ -306,18 +303,18 @@ function Binding.derive(deps, transform)
                 unsubs[i] = dep:subscribe(update)
             end
 
-            return function()
+            return function ()
                 for _, unsub in ipairs(unsubs) do
                     unsub()
                 end
             end
-        end,
+        end
     }
 end
 
 ---@diagnostic disable-next-line
 return setmetatable(Binding, {
-    __call = function(_, emitter, prop)
+    __call = function (_, emitter, prop)
         return Binding.new(emitter, prop)
-    end,
+    end
 })
