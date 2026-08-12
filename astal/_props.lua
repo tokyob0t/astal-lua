@@ -8,28 +8,26 @@ local function not_implemented(name)
     end
 end
 
+local no_implicit_destroy = {}
+local types = setmetatable({}, { __mode = 'k' })
+
+Gtk.Widget._attribute.type = {
+    set = function(self, _type)
+        types[self] = _type
+    end,
+    get = function(self)
+        return types[self]
+    end,
+}
+
 Gtk.Widget._attribute.action_group = {
     set = function(self, v)
         self:insert_action_group(v[1], v[2])
     end,
 }
 
-local no_implicit_destroy = {}
-
----@class AstalLua.Astalified: Gtk.Widget
----@field css string?
----@field vertical boolean
----@field children Gtk.Widget[]
----@field no_implicit_destroy boolean
----@field toggle_class_name fun(self: Gtk.Widget, class_name: string, condition: boolean)
----@field hook fun(self: Gtk.Widget, gobject: AstalLua.Connectable, signalOrCallback: string | fun(gobject: AstalLua.Connectable, prop: any), callback?: fun(gobject: AstalLua.Connectable, prop: any) )
-
-local default_props = {
-    set_children = not_implemented('set_children'),
-    get_children = not_implemented('get_children'),
-    set_css = not_implemented('set_css'),
-    get_css = not_implemented('get_css'),
-    set_no_implicit_destroy = function(self, idestroy)
+Gtk.Widget._attribute.no_implicit_destroy = {
+    set = function(self, idestroy)
         if no_implicit_destroy[self] == nil then
             self.on_destroy = function()
                 no_implicit_destroy[self] = nil
@@ -37,9 +35,28 @@ local default_props = {
         end
         no_implicit_destroy[self] = idestroy
     end,
-    get_no_implicit_destroy = function(self)
+    get = function(self)
         return not not no_implicit_destroy[self]
     end,
+}
+
+---@class AstalLua.Astalified: Gtk.Widget
+---@field type? string
+---@field css? string
+---@field class_name string
+---@field vertical boolean
+---@field children Gtk.Widget[]
+---@field no_implicit_destroy boolean
+---@field toggle_class_name fun(self: Gtk.Widget, class_name: string, condition: boolean)
+---@field hook fun(self: Gtk.Widget, object: AstalLua.Connectable, signalOrCallback: string | fun(gobject: AstalLua.Connectable, prop: any), callback?: fun(gobject: AstalLua.Connectable, prop: any))
+
+local default_props = {
+    set_children = not_implemented('set_children'),
+    get_children = not_implemented('get_children'),
+    set_css = not_implemented('set_css'),
+    get_css = not_implemented('get_css'),
+    set_class_name = not_implemented('set_class_name'),
+    get_class_name = not_implemented('get_class_name'),
     hook = function(self, object, signalOrCallback, callback)
         if GObject.Object:is_type_of(object) and type(signalOrCallback) == 'string' then
             local id
@@ -57,7 +74,7 @@ local default_props = {
                 GObject.signal_handler_disconnect(object, id)
             end
         elseif type(object.subscribe) == 'function' then
-            local unsub = object.subscribe(function(...)
+            local unsub = object:subscribe(function(...)
                 signalOrCallback(self, ...)
             end)
             self.on_destroy = unsub
