@@ -23,31 +23,35 @@ Gtk.Widget._attribute.vertical = {
     end,
 }
 
-Gtk.Popover._attribute.offset = {
-    get = function(self)
-        return { self:get_offset() }
-    end,
+---@class Gtk.Popover
+---@field offset { [1]: number, [2]: number }
+local Popover = Gtk.Popover
+
+Popover._attribute.offset = {
     set = function(self, v)
         local x, y = v[1], v[2]
 
         self:set_offset(x, y)
     end,
+    get = function(self)
+        return { self:get_offset() }
+    end,
 }
 
----@type Astal.Slider | { format_value_function: (fun(self: Astal.Slider, value: number): string) }
+---@class Astal.Slider
+---@field format_value_function fun(self: Astal.Slider, value: number): string
 local Slider = Astal.Slider
 
----@diagnostic disable-next-line
 Slider._attribute.format_value_func = {
     set = function(self, fn)
         self:set_format_value_func(fn)
     end,
 }
 
----@type Gtk.DrawingArea | { draw_func: fun(self: Gtk.DrawingArea, cr: cairo.Context, width: integer, height: integer) }
+---@class Gtk.DrawingArea
+---@field draw_func fun(self: Gtk.DrawingArea, cr: cairo.Context, width: integer, height: integer)
 local DrawingArea = Gtk.DrawingArea
 
----@diagnostic disable-next-line
 DrawingArea._attribute.draw_func = {
     set = function(self, fn)
         self:set_draw_func(fn)
@@ -56,7 +60,11 @@ DrawingArea._attribute.draw_func = {
 
 return {
     astalify = astalify,
-
+    ---@generic T
+    ---@param args { key?: string | ( fun(item: T): any ) , each: AstalLua.Binding<T[]>, render: fun(item: T): Gtk.Widget? }
+    For = function(args)
+        return require('astal._utils').for_widget(args.key, args.each, args.render)
+    end,
     DrawingArea = astalify(DrawingArea),
     CircularProgress = astalify(CircularProgress, {
         set_children = function(self, children)
@@ -89,7 +97,7 @@ return {
     }),
 
     Entry = astalify(Gtk.Entry, {
-        get_children = function(self)
+        get_children = function()
             return {}
         end,
     }),
@@ -167,7 +175,7 @@ return {
         end,
     }),
 
-    Popover = astalify(Gtk.Popover),
+    Popover = astalify(Popover),
 
     MenuButton = astalify(Gtk.MenuButton, {
         set_children = function(self, children)

@@ -13,6 +13,13 @@ local astalify = require('astal.gtk3.astalify')
 
 return {
     astalify = astalify,
+
+    ---@generic T
+    ---@param args { key?: string | ( fun(item: T): any ) , each: AstalLua.Binding<T[]>, render: fun(item: T): Gtk.Widget? }
+    For = function(args)
+        return require('astal._utils').for_widget(args.key, args.each, args.render)
+    end,
+
     Box = astalify(Astal.Box),
     Button = astalify(Astal.Button),
     CenterBox = astalify(Astal.CenterBox, {

@@ -236,4 +236,40 @@ function M.normalize_css(maybe_css)
     return '* { ' .. maybe_css .. '; }'
 end
 
+function M.for_widget(key, each, render)
+    if type(key) == 'nil' then
+        key = function(item)
+            return item
+        end
+    elseif type(key) == 'string' then
+        local k = key
+        key = function(item)
+            return item[k]
+        end
+    end
+
+    local cache = {}
+
+    return each:as(function(items)
+        local next_cache = {}
+        local output = {}
+
+        for i, item in ipairs(items) do
+            local k = key(item, i)
+
+            local child = cache[k]
+            if not child then
+                child = render(item)
+            end
+
+            next_cache[k] = child
+            output[#output + 1] = child
+        end
+
+        cache = next_cache
+
+        return output
+    end)
+end
+
 return M
