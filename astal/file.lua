@@ -115,7 +115,7 @@ M.monitor_file = function(path, recursive, callback)
     local file = Gio.File.new_for_path(path)
 
     ---@type Gio.FileMonitor
-    local monitor = file:monitor({ 'WATCH_HARD_LINKS', 'WATCH_MOVES', 'WATCH_MOUNTS' })
+    local monitor = file:monitor { 'WATCH_HARD_LINKS', 'WATCH_MOVES', 'WATCH_MOUNTS' }
 
     if callback then
         monitor.on_changed = function(_, _file, _, event_type)
