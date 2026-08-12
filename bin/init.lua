@@ -87,7 +87,7 @@ function Instance:Inspector()
 end
 
 function Instance:Quit()
-    return self:invoke_method('Quit', GLib.Variant('()'), GLib.Variant('()')):decode()
+    return self:invoke_method('Quit', GLib.Variant('()'), GLib.VariantType('()')):decode()
 end
 
 local function main()
@@ -155,7 +155,7 @@ local function main()
         return os.execute(string.format('lua%s %s', args.lua_version, args.file))
     elseif args.request then
         if not Instance:is_running() then
-            io.stderr:write(string.format("Instance '%s' is not running", Instance.name))
+            io.stderr:write(string.format('Instance \'%s\' is not running', Instance.name))
             io.stderr:flush()
             return 1
         elseif args.inspector then
@@ -185,7 +185,9 @@ local function main()
                 io.stdout:flush()
                 return 0
             else
-                io.stderr:write(string.format("Instance '%s' did't give a response", Instance.name))
+                io.stderr:write(
+                    string.format('Instance \'%s\' did\'t give a response', Instance.name)
+                )
                 return 1
             end
         end
