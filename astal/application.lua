@@ -1,8 +1,15 @@
+---@diagnostic disable:undefined-field
+---@diagnostic disable:type-not-found
+---@diagnostic disable:redefined-local
+---@diagnostic disable:unused
+
 local lgi = require('lgi')
 local Gtk = lgi.require('Gtk')
-local Gio = lgi.require('Gio')
-local GLib = lgi.require('GLib')
-local GObject = lgi.require('GObject')
+local Gio = lgi.require('Gio', '2.0')
+local GLib = lgi.require('GLib', '2.0')
+local GObject = lgi.require('GObject', '2.0')
+
+local utils = require('astal._utils')
 
 local DEFAULT_INSTANCE_NAME = 'lua'
 local PATH = '/io/Astal/Application'
@@ -28,8 +35,9 @@ local IFACE_INFO = Gio.DBusInterfaceInfo {
     },
 }
 
----@class AstalLua.ApplicationBase: Gtk.Application
----@field monitors Gdk.Monitor[]
+---@class AstalLua.ApplicationBase: Gtk.Application, GObject.Object
+---@field monitors GLib.List<Gdk.Monitor>
+---@field visible boolean
 local Application = Gtk.Application:derive('AstalLua.ApplicationBase')
 
 Application._attribute.instance_name = {
@@ -41,42 +49,40 @@ Application._attribute.instance_name = {
     end,
 }
 
+Application.add_css_provider = utils.not_implemented('add_css_provider')
+Application.remove_css_provider = utils.not_implemented('remove_css_provider')
+Application.reset_css = utils.not_implemented('reset_css')
+Application.add_icons = utils.not_implemented('add_icons')
+
 ---@param method string
----@param variant GLib.Variant | string[]
+---@param variant GLib.Variant<'s'> | GLib.Variant<'as'>
 ---@param response fun(signature?: string, ... )
 function Application:handle_bus_call(method, variant, response)
     if method == 'ToggleWindow' then
-        return response(), self:toggle_window(variant[1])
-    end
-    if method == 'ListWindows' then
-        local tbl = {}
+        response()
+        local name = variant:decode()[1]
+        self:toggle_window(name)
+    elseif method == 'ListWindows' then
+        -- stylua: ignore start
+        response('(as)', utils.map(self:get_windows(), function(window)
+            if window.visible then
+                return string.format('*%s', window.name)
+            end
 
-        for _, win in ipairs(self:get_windows()) do
-            table.insert(tbl, string.format('%s%s', win.visible and '*' or '', win.name))
-        end
-
-        return response('(as)', tbl)
-    end
-
-    if method == 'Inspector' then
-        return response(), self:inspector()
-    end
-
-    if method == 'Quit' then
-        return response(), self:quit()
-    end
-
-    if method == 'Request' then
-        local request_args = {}
-
-        local array = variant.value[1]
-
-        for _, value in array:ipairs() do
-            table.insert(request_args, value)
-        end
+            return window.name
+        end))
+        -- stylua: ignore end
+    elseif method == 'Inspector' then
+        response()
+        self:inspector()
+    elseif method == 'Quit' then
+        response()
+        self:quit()
+    elseif method == 'Request' then
+        local request_args = variant:decode()[1]
 
         if #self.priv.request_handlers == 0 then
-            return response('(s)', "This app doesn't provide a request handler")
+            return response('(s)', 'This app doesn\'t provide a request handler')
         end
 
         local handled = false
@@ -129,7 +135,7 @@ end
 
 ---@param name string
 function Application:toggle_window(name)
-    local w = assert(self:get_window(name))
+    local w = assert(self:get_window(name), string.format('window not found: %s', name))
 
     w.visible = not w.visible
 end
@@ -162,23 +168,6 @@ function Application:apply_css(style, reset)
     self:add_css_provider(provider)
 end
 
-function Application:add_css_provider(provider)
-    error("The method 'add_css_provider' must be overridden in a subclass", 2)
-end
-
-function Application:remove_css_provider(provider)
-    error("The method 'remove_css_provider' must be overridden in a subclass", 2)
-end
-
-function Application:reset_css()
-    error("The method 'reset_css' must be overridden in a subclass", 2)
-end
-
----@param path string
-function Application:add_icons(path)
-    error("The method 'add_icons' must be overridden in a subclass", 2)
-end
-
 ---@param fn fun(args: string[], callback: fun(response: string))
 function Application:add_request_handler(fn)
     table.insert(self.priv.request_handlers, fn)
@@ -198,7 +187,7 @@ end
 function Application:start(args)
     self.application_id = string.format('io.Astal.%s', args.instance_name or 'lua')
 
-    if type(args.hold) == 'nil' then
+    if args.hold == nil then
         args.hold = true
     end
 

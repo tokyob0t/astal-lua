@@ -237,7 +237,7 @@ function M.normalize_css(maybe_css)
 end
 
 function M.for_widget(key, each, render)
-    if type(key) == 'nil' then
+    if key == nil then
         key = function(item)
             return item
         end
@@ -270,6 +270,12 @@ function M.for_widget(key, each, render)
 
         return output
     end)
+end
+
+function M.not_implemented(name)
+    return function(self)
+        error(string.format('%s:%s implementation not found', self, name))
+    end
 end
 
 return M

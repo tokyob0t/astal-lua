@@ -1,3 +1,6 @@
+---@diagnostic disable:undefined-field
+---@diagnostic disable:type-not-found
+---@diagnostic disable:redefined-local
 local lgi = require('lgi')
 
 ---@type Gtk

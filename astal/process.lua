@@ -1,10 +1,10 @@
 local lgi = require('lgi')
+
 ---@type Gio
 local Gio = lgi.require('Gio')
 
 ---@type GLib
 local GLib = lgi.require('GLib')
-
 
 -- stylua: ignore start
 ---@enum (key) AstalLua.UNIX_SIGNALS
@@ -56,7 +56,7 @@ Process.new = function(command, mode)
     local argv
 
     if type(command) == 'string' then
-        argv = GLib.shell_parse_argv(command) --- @diagnostic disable-line
+        argv = GLib.shell_parse_argv(command) ---@diagnostic disable-line
     else
         argv = command
     end
@@ -126,7 +126,7 @@ function Process:quit()
     self:signal('SIGQUIT')
 end
 
-function Process:quit()
+function Process:kill()
     self:signal('SIGKILL')
 end
 
@@ -157,12 +157,14 @@ M.subprocess = function(command, on_stdout, on_stderr)
 
     on_stdout = on_stdout
         or function(out)
-            io.stdout:write(string.format('%s\n', out))
+            io.stdout:write(tostring(out) .. '\n')
+            io.stdout:flush()
         end
 
     on_stderr = on_stderr
         or function(err)
-            io.stderr:write(string.format('%s\n', err))
+            io.stderr:write(tostring(err) .. '\n')
+            io.stderr:flush()
         end
 
     ---@param stream Gio.DataInputStream
@@ -220,9 +222,10 @@ M.exec = await(function(command)
 end)
 
 ---@param command string | string[]
----@param callback? fun(stdout: string?, stderr?: string)
+---@param callback? fun(stdout?: string, stderr?: string)
 M.exec_async = async(function(command, callback)
     local stdout, stderr = M.async_exec(command)
+
     if callback then
         callback(stdout, stderr)
     end

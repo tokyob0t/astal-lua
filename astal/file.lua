@@ -1,3 +1,8 @@
+---@diagnostic disable:undefined-field
+---@diagnostic disable:type-not-found
+---@diagnostic disable:redefined-local
+---@diagnostic disable:inject-field
+
 local lgi = require('lgi')
 ---@type Gio
 local Gio = lgi.require('Gio')
@@ -90,7 +95,7 @@ end
 M.write_file_async = async(function(path, contents, callback)
     local ok = M.async_write_file(path, contents)
 
-    if callback then
+    if callback ~= nil then
         callback(ok)
     end
 end)

@@ -4,30 +4,30 @@ local GObject = lgi.require('GObject', '2.0')
 local Process = require('astal.process')
 local Time = require('astal.time')
 
----@alias AstalLua.Connectable GObject.Object | AstalLua.Variable<any> | { subscribe: function }
+---@alias AstalLua.Connectable GObject.Object | AstalLua.Variable<any> | { subscribe: function, get: function }
 
 ---@class AstalLua.Variable<T>: GObject.Object, {
 --- value: T,
 --- subscribe: fun(self, callback: fun(value: T) ),
 --- get: (fun(self): T),
 --- set: (fun(self, value: T)) }
----@field value             any
----@field private priv      table
----@field private _name     "AstalLua.Variable"
+---@field value any
+---@field private _name 'AstalLua.Variable'
 ---@field private _property table
----@overload fun(args: { value: any }): AstalLua.Variable
+---@overload fun(args: { value: `T` }): AstalLua.Variable<T>
 local Variable = GObject.Object:derive('AstalLua.Variable')
 
-Variable._property.value = GObject.ParamSpecBoolean('value', 'value', 'dummy boolean property', false, { 'READWRITE' })
+Variable._property.value =
+    GObject.ParamSpecBoolean('value', 'value', 'dummy boolean property', false, { 'READWRITE' })
 
 Variable._attribute.value = {
-    set = function (self, value)
+    set = function(self, value)
         self.priv.value = value
         self:notify('value')
     end,
-    get = function (self)
+    get = function(self)
         return self.priv.value
-    end
+    end,
 }
 
 ---@private
@@ -57,12 +57,12 @@ function Variable:start_poll()
     end
 
     if self.priv.poll_fn then
-        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function ()
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
             self:set(self.priv.poll_transform(self.priv.poll_fn(), self:get()))
         end)
     elseif self.priv.poll_exec then
-        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function ()
-            Process.exec_async(self.priv.poll_exec, function (out, err)
+        self.priv.poll_cancel = Time.interval(self.priv.poll_interval, function()
+            Process.exec_async(self.priv.poll_exec, function(out, err)
                 if err ~= nil then
                     return self:emit_error(err)
                 else
@@ -87,10 +87,9 @@ end
 function Variable:poll(interval, exec, transform)
     self:stop_poll()
     self.priv.poll_interval = interval
-    self.priv.poll_transform = transform
-        or function (next)
-            return next
-        end
+    self.priv.poll_transform = transform or function(next)
+        return next
+    end
 
     if type(exec) == 'function' then
         self.priv.poll_fn = exec
@@ -112,15 +111,11 @@ function Variable:start_watch()
         return
     end
 
-    self.priv.watch = Process.subprocess(
-        self.priv.watch_exec,
-        function (out)
-            self:set(self.priv.watch_transform(out, self:get()))
-        end,
-        function (err)
-            self:emit_error(err)
-        end
-    )
+    self.priv.watch = Process.subprocess(self.priv.watch_exec, function(out)
+        self:set(self.priv.watch_transform(out, self:get()))
+    end, function(err)
+        self:emit_error(err)
+    end)
 end
 
 function Variable:stop_watch()
@@ -133,10 +128,9 @@ end
 ---@param exec       string | string[]
 ---@param transform? fun(next: any, prev: any): any
 function Variable:watch(exec, transform)
-    transform = transform
-        or function (next)
-            return next
-        end
+    transform = transform or function(next)
+        return next
+    end
 
     self:stop_watch()
     self.priv.watch_exec = exec
@@ -154,16 +148,16 @@ function Variable:observe(gobject, signal, callback)
     if string.sub(signal, 1, 8) == 'notify::' then
         local prop = string.gsub(signal, 'notify::', '')
 
-        id = gobject.on_notify:connect(function ()
+        id = gobject.on_notify:connect(function()
             self:set(callback(gobject, gobject[prop]))
         end, prop, false)
     else
-        id = gobject['on_' .. signal]:connect(function (...)
+        id = gobject['on_' .. signal]:connect(function(...)
             self:set(callback(...))
         end)
     end
 
-    self:on_dropped(function ()
+    self:on_dropped(function()
         GObject.signal_handler_disconnect(gobject, id)
     end)
 
@@ -173,11 +167,11 @@ end
 ---@param callback fun(value: T)
 ---@return function
 function Variable:subscribe(callback)
-    local id = self.on_notify:connect(function ()
+    local id = self.on_notify:connect(function()
         callback(self:get())
     end, 'value', false)
 
-    return function ()
+    return function()
         GObject.signal_handler_disconnect(self, id)
     end
 end
@@ -204,14 +198,12 @@ end
 
 ---@param fn function
 function Variable:on_dropped(fn)
-    assert(fn, 'Callback not provided on on_dropped()')
     table.insert(self.priv.droptbl, fn)
     return self
 end
 
 ---@param fn function
 function Variable:on_error(fn)
-    assert(fn, 'Callback not provided on on_dropped()')
     table.insert(self.priv.errtbl, fn)
     self.priv.err_handler = true
 
@@ -219,16 +211,15 @@ function Variable:on_error(fn)
 end
 
 ---@generic T
----@param deps       table<number, AstalLua.Variable<any> | AstalLua.Binding<any>>
----@param transform? fun(...): T
+---@param deps (AstalLua.Connectable | AstalLua.Binding<any>)[]
+---@param transform? fun(...): `T`
 ---@return AstalLua.Variable<T>
 function Variable.derive(deps, transform)
     local bind = require('astal.binding')
 
-    transform = transform
-        or function (...)
-            return { ... }
-        end
+    transform = transform or function(...)
+        return { ... }
+    end
 
     for i, var in ipairs(deps) do
         if Variable:is_type_of(var) then
@@ -236,6 +227,7 @@ function Variable.derive(deps, transform)
         end
     end
 
+    ---@return any
     local function update()
         local params = {}
         for i, binding in ipairs(deps) do
@@ -249,12 +241,12 @@ function Variable.derive(deps, transform)
     local unsubs = {}
 
     for i, b in ipairs(deps) do
-        unsubs[i] = b:subscribe(function ()
+        unsubs[i] = b:subscribe(function()
             var:set(update())
         end)
     end
 
-    var:on_dropped(function ()
+    var:on_dropped(function()
         for _, unsub in ipairs(unsubs) do
             unsub()
         end
@@ -269,13 +261,14 @@ function Variable:_init()
     self.priv.errtbl = {}
     self.priv.err_handler = false
 
-    self:on_error(function (_, err)
+    self:on_error(function(_, err)
         if not self.priv.err_handler then
-            print(err)
+            io.stderr:write(tostring(err) .. '\n')
+            io.stderr:flush()
         end
     end)
 
-    self:on_dropped(function ()
+    self:on_dropped(function()
         self:stop_watch()
         self:stop_poll()
     end)

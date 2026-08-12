@@ -2,11 +2,7 @@ local lgi = require('lgi')
 local GObject = lgi.require('GObject')
 local Gtk = lgi.require('Gtk')
 
-local function not_implemented(name)
-    return function(self)
-        error(string.format('%s:%s implementation not found', tostring(self), name))
-    end
-end
+local utils = require('astal._utils')
 
 local no_implicit_destroy = {}
 local types = setmetatable({}, { __mode = 'k' })
@@ -48,15 +44,15 @@ Gtk.Widget._attribute.no_implicit_destroy = {
 ---@field children Gtk.Widget[]
 ---@field no_implicit_destroy boolean
 ---@field toggle_class_name fun(self: Gtk.Widget, class_name: string, condition: boolean)
----@field hook fun(self: Gtk.Widget, object: AstalLua.Connectable, signalOrCallback: string | fun(gobject: AstalLua.Connectable, prop: any), callback?: fun(gobject: AstalLua.Connectable, prop: any))
+---@field hook fun(self: Gtk.Widget | AstalLua.Astalified , object: AstalLua.Connectable, signalOrCallback: string | fun(gobject: AstalLua.Connectable, prop: any), callback?: fun(gobject: AstalLua.Connectable, prop: any))
 
 local default_props = {
-    set_children = not_implemented('set_children'),
-    get_children = not_implemented('get_children'),
-    set_css = not_implemented('set_css'),
-    get_css = not_implemented('get_css'),
-    set_class_name = not_implemented('set_class_name'),
-    get_class_name = not_implemented('get_class_name'),
+    set_children = utils.not_implemented('set_children'),
+    get_children = utils.not_implemented('get_children'),
+    set_css = utils.not_implemented('set_css'),
+    get_css = utils.not_implemented('get_css'),
+    set_class_name = utils.not_implemented('set_class_name'),
+    get_class_name = utils.not_implemented('get_class_name'),
     hook = function(self, object, signalOrCallback, callback)
         if GObject.Object:is_type_of(object) and type(signalOrCallback) == 'string' then
             local id

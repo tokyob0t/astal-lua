@@ -1,8 +1,8 @@
 #!/usr/bin/env lua
 
 local lgi = require('lgi')
-local Gio = lgi.require('Gio')
-local GLib = lgi.require('GLib')
+local Gio = lgi.require('Gio', '2.0')
+local GLib = lgi.require('GLib', '2.0')
 local argparse = require('argparse')
 
 require('astal._overrides')
@@ -131,7 +131,8 @@ local function main()
 
     if args.list then
         for _, inst in ipairs(Instance.list_instances()) do
-            print(inst)
+            io.stdout:write(inst .. '\n')
+            io.stdout:flush()
         end
 
         return 0

@@ -8,7 +8,13 @@
     "diagnostics": {
         "globals": [],
         "disable": [
-            "call-non-callable"
+            "call-non-callable",
+            "duplicate-type",
+            "duplicate-doc-field",
+            "duplicate-set-field",
+            "need-check-nil",
+            "unnecessary-assert",
+            "unnecessary-if"
         ]
     },
     "workspace": {
@@ -18,14 +24,14 @@
             "{luarocks}"
         ],
         "workspaceRoots": [
-            "./src"
+            "./astal"
         ]
     },
     "runtime": {
         "version": "LuaJIT",
         "requirePattern": [
-            "src/?.lua",
-            "src/?/init.lua",
+            "astal/?.lua",
+            "astal/?/init.lua",
             "venv/share/lua/5.1/?.lua",
             "venv/share/lua/5.1/?/init.lua"
         ]

@@ -1,6 +1,6 @@
 local lgi = require('lgi')
 
-local GLib = lgi.require('GLib')
+local GLib = lgi.require('GLib', '2.0')
 
 local utils = require('astal._utils')
 

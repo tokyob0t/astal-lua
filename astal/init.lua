@@ -1,6 +1,4 @@
-if not table.unpack then
-    table.unpack = unpack
-end
+require('astal._overrides')
 
 local Binding = require('astal.binding')
 local File = require('astal.file')
@@ -9,11 +7,39 @@ local Time = require('astal.time')
 local Variable = require('astal.variable')
 local lgi = require('lgi')
 
-require('astal._overrides')
+---@generic T
+---@param name `T`
+---@param version? string
+---@return T
+local function _require(name, version)
+    return lgi.require(name, version)
+end
+
+---@generic F: function
+---@param fn F
+---@return F
+local function async(fn)
+    return function(...)
+        return lgi.Gio.Async.start(fn)(...)
+    end
+end
+
+---@generic F: function
+---@param fn F
+---@return F
+local function await(fn)
+    return function(...)
+        return lgi.Gio.Async.call(fn)(...)
+    end
+end
 
 return {
     Variable = Variable,
     bind = Binding,
+
+    require = _require,
+    async = async,
+    await = await,
 
     interval = Time.interval,
     timeout = Time.timeout,
@@ -28,26 +54,4 @@ return {
     write_file = File.write_file,
     write_file_async = File.write_file_async,
     monitor_file = File.monitor_file,
-
-    ---@generic F: function
-    ---@param fn F
-    ---@return F
-    async = function(fn)
-        return function(...)
-            return lgi.Gio.Async.start(fn)(...)
-        end
-    end,
-
-    ---@generic F: function
-    ---@param fn F
-    ---@return F
-    await = function(fn)
-        return function(...)
-            return lgi.Gio.Async.call(fn)(...)
-        end
-    end,
-
-    ---@generic T
-    ---@type fun(libname: `T`, version?: string): T
-    require = lgi.require,
 }

@@ -1,8 +1,11 @@
+---@diagnostic disable:undefined-field
+---@diagnostic disable:type-not-found
+---@diagnostic disable:redefined-local
+
 local lgi = require('lgi')
+
 ---@type Gtk
 local Gtk = lgi.require('Gtk', '4.0')
----@type GObject
-local GObject = lgi.require('GObject', '2.0')
 
 local construct = require('astal._construct')
 
@@ -16,19 +19,19 @@ local get_children = {}
 local css_providers = {}
 
 local lookup_children = {
-    __index = function (t, k)
+    __index = function(t, k)
         for _, v in ipairs(t) do
             if v.name == k then
                 return v
             end
         end
-    end
+    end,
 }
 
 local env = config {
     -- must include
-    set_children = function (self, children)
-        local ok = pcall(function ()
+    set_children = function(self, children)
+        local ok = pcall(function()
             return self.remove ~= nil
         end)
 
@@ -52,10 +55,10 @@ local env = config {
 
         set_children[self._name](self, utils.ensure_widgets(children))
     end,
-    get_children = function (self)
+    get_children = function(self)
         return setmetatable(get_children[self._name](self), lookup_children)
     end,
-    set_css = function (self, css)
+    set_css = function(self, css)
         local ctx = self:get_style_context()
 
         if not css_providers[self] then
@@ -66,44 +69,46 @@ local env = config {
 
         ctx:add_provider(css_providers[self], Gtk.STYLE_PROVIDER_PRIORITY_USER)
     end,
-    get_css = function (self)
+    get_css = function(self)
         if css_providers[self] then
             return css_providers[self]:to_string()
         end
         return ''
     end,
-    set_class_name = function (self, class_name)
+    set_class_name = function(self, class_name)
         local names = {}
         for word in class_name:gmatch('%S+') do
             table.insert(names, word)
         end
         self.css_classes = names
     end,
-    get_class_name = function (self)
+    get_class_name = function(self)
         return table.concat(self.css_classes, ' ')
     end,
-    toggle_css_class = function (self, css_class, condition)
+    toggle_css_class = function(self, css_class, condition)
         if condition then
             self:add_css_class(css_class)
         else
             self:remove_css_class(css_class)
         end
-    end
+    end,
 }
 
-local do_set_children = function (self, children)
+local do_set_children = function(self, children)
     for _, ch in ipairs(children) do
         if Gtk.Widget:is_type_of(ch) then
             self:do_add_child(dummy_builder, ch, ch.type)
         else
-            io.stderr:write("Couldn't add children of type " .. tostring(ch) .. ' to' .. tostring(self))
+            io.stderr:write(
+                'Couldn\'t add children of type ' .. tostring(ch) .. ' to' .. tostring(self)
+            )
             io.stderr:flush()
         end
     end
 end
 
-local do_get_children = function (self)
-    local ok = pcall(function ()
+local do_get_children = function(self)
+    local ok = pcall(function()
         return self.get_child ~= nil
     end)
 
@@ -126,8 +131,8 @@ end
 ---@param ctor    T
 ---@param config? { set_children?: fun(self: T, children: Gtk.Widget[]), get_children?: fun(self: T): Gtk.Widget[] }
 ---@return fun(args?: T | AstalLua.Astalified | AstalLua.EventControllerSignals | { setup: fun(self: T | AstalLua.Astalified) }): T | AstalLua.Astalified
-return function (ctor, config)
-    if not config then
+return function(ctor, config)
+    if config == nil then
         config = {}
     end
 
@@ -148,7 +153,7 @@ return function (ctor, config)
         end
     end
 
-    return function (...)
+    return function(...)
         return construct(ctor, ...)
     end
 end
