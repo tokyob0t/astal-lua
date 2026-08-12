@@ -43,7 +43,9 @@ function ApplicationGtk3:reset_css()
 end
 
 function ApplicationGtk3:add_icons(path)
-    if path and GLib.file_test(path, 'IS_DIR') and GLib.file_test(path, 'EXISTS') then
+    if string.find(path, '^resource://') then
+        Gtk.IconTheme.get_default():add_resource_path((path:gsub('^resource://', '')))
+    elseif path and GLib.file_test(path, 'IS_DIR') and GLib.file_test(path, 'EXISTS') then
         Gtk.IconTheme.get_default():prepend_search_path(path)
     end
 end
@@ -54,8 +56,8 @@ function ApplicationGtk3:_init()
 end
 
 ---@type AstalLua.ApplicationGtk3
-local app = ApplicationGtk3({
+local app = ApplicationGtk3 {
     flags = { 'HANDLES_COMMAND_LINE' },
-})
+}
 
 return app

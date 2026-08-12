@@ -56,7 +56,9 @@ function ApplicationGtk4:reset_css()
 end
 
 function ApplicationGtk4:add_icons(path)
-    if path and GLib.file_test(path, 'IS_DIR') and GLib.file_test(path, 'EXISTS') then
+    if string.find(path, '^resource://') then
+        Gtk.IconTheme.get_for_display(DISPLAY):add_resource_path((path:gsub('^resource://', '')))
+    elseif GLib.file_test(path, { 'EXISTS', 'IS_DIR' }) then
         Gtk.IconTheme.get_for_display(DISPLAY):add_search_path(path)
     end
 end
