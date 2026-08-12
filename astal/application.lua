@@ -79,9 +79,14 @@ function Application:handle_bus_call(method, variant, response)
             return response('(s)', "This app doesn't provide a request handler")
         end
 
+        local handled = false
+
         for i = #self.priv.request_handlers, 1, -1 do
             self.priv.request_handlers[i](request_args, function(r)
-                response('(s)', tostring(r))
+                if not handled then
+                    handled = true
+                    response('(s)', tostring(r))
+                end
             end)
         end
     end
