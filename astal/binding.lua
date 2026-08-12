@@ -6,7 +6,7 @@ local Gio = lgi.require('Gio', '2.0')
 local function constant(v, default)
     return require('astal.binding').new {
         get = function()
-            if default and type(v) == 'nil' then
+            if default and v == nil then
                 return default
             end
 
@@ -194,7 +194,7 @@ function Binding:get()
     local current = self.emitter
 
     for prop in self.property:gmatch('[^.]+') do
-        if type(current) == 'nil' then
+        if current == nil then
             return self.transform_fn()
         elseif Gio.Settings:is_type_of(current) then
             current = utils.decode_variant(current:get_value(prop))
