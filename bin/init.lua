@@ -5,6 +5,8 @@ local Gio = lgi.require('Gio')
 local GLib = lgi.require('GLib')
 local argparse = require('argparse')
 
+require('astal._overrides')
+
 local Instance = {
     name = 'astal-lua',
 }
@@ -67,32 +69,25 @@ end
 ---@param args string[]
 function Instance:Request(args)
     return self:invoke_method('Request', GLib.Variant('(as)', { args }), GLib.VariantType('(s)'))
+        :decode()[1]
 end
 
 function Instance:ListWindows()
-    local tuple = self:invoke_method('ListWindows', GLib.Variant('()'), GLib.VariantType('(as)'))
-
-    local array = tuple:get_child_value(0)
-
-    local windows = {}
-
-    for _, win in array:ipairs() do
-        table.insert(windows, win)
-    end
-
-    return windows
+    return self:invoke_method('ListWindows', GLib.Variant('()'), GLib.VariantType('(as)'))
+        :decode()[1]
 end
 
 function Instance:ToggleWindow(name)
     return self:invoke_method('ToggleWindow', GLib.Variant('(s)', { name }), GLib.VariantType('()'))
+        :decode()
 end
 
 function Instance:Inspector()
-    return self:invoke_method('Inspector', GLib.Variant('()'), GLib.VariantType('()'))
+    return self:invoke_method('Inspector', GLib.Variant('()'), GLib.VariantType('()')):decode()
 end
 
 function Instance:Quit()
-    return self:invoke_method('Quit', GLib.Variant('()'), GLib.Variant('()'))
+    return self:invoke_method('Quit', GLib.Variant('()'), GLib.Variant('()')):decode()
 end
 
 local function main()
