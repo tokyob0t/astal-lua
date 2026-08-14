@@ -149,9 +149,9 @@ M.monitor_file = function(path, recursive, callback)
         end
     end
 
-    monitor.on_notify.cancelled = function()
-        monitor:unref()
-    end
+    -- monitor.on_notify.cancelled = function()
+    --     monitor:unref()
+    -- end
 
     return monitor
 end
