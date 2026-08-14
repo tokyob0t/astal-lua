@@ -20,7 +20,17 @@ end
 
 ---@param default? any
 local function coerce(v, default)
-    if require('astal.binding'):is_type_of(v) then
+    local is_binding = require('astal.binding'):is_type_of(v)
+
+    if is_binding and default ~= nil then
+        return v:as(function(value)
+            if value == nil then
+                return default
+            end
+
+            return value
+        end)
+    elseif is_binding then
         return v
     end
 
